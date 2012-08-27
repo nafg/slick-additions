@@ -15,13 +15,13 @@ trait KeyedTableComponent extends BasicDriver {
     def lookup = column[Lookup](keyColumnName, keyColumnOptions: _*)
 
     case class Lookup(key: K) {
-      def query[T <: KeyedTable[A, K]](table: T)(implicit shape: Shape[T, A, T]) = {
+      def query(implicit shape: Shape[KeyedTable.this.type, A, KeyedTable.this.type]) = {
         import simple._
-        Query(table).filter(_.key is key)
+        Query(KeyedTable.this: KeyedTable.this.type).filter{ t => columnExtensionMethods(t.key) is key }
       }
-      def obj(implicit session: scala.slick.session.Session): Option[A] = {
+      def obj(implicit shape: Shape[KeyedTable.this.type, A, KeyedTable.this.type], session: scala.slick.session.Session): Option[A] = {
         import simple._
-        query(KeyedTable.this).firstOption
+        query.firstOption
       }
     }
     object Lookup {
