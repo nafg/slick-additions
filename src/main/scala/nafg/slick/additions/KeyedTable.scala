@@ -14,18 +14,21 @@ trait KeyedTableComponent extends BasicDriver {
     @deprecated def id = key
     def lookup = column[Lookup](keyColumnName, keyColumnOptions: _*)
 
-    case class Lookup(key: K) {
-      def query(implicit shape: Shape[KeyedTable.this.type, A, KeyedTable.this.type]) = {
-        import simple._
-        Query(KeyedTable.this: KeyedTable.this.type).filter{ t => columnExtensionMethods(t.key) is key }
-      }
-      def obj(implicit shape: Shape[KeyedTable.this.type, A, KeyedTable.this.type], session: scala.slick.session.Session): Option[A] = {
-        import simple._
-        query.firstOption
-      }
-    }
+    class Lookup(key: K) extends KeyedTableComponent.this.Lookup[A, K, this.type](this, key)
     object Lookup {
-      implicit val lookupMapper: BaseTypeMapper[Lookup] = MappedTypeMapper.base[Lookup, K](_.key, Lookup(_))
+      def apply(key: K): Lookup = new Lookup(key)
+    }
+    implicit def lookupMapper: BaseTypeMapper[Lookup] =
+      MappedTypeMapper.base[Lookup, K](_.key, Lookup(_))
+  }
+  case class Lookup[A, K : BaseTypeMapper, T <: KeyedTable[A, K]](table: T, key: K) {
+    def query: Query[T, A] = {
+      import simple._
+      Query(table).filter(_.key is key)
+    }
+    def obj(implicit session: scala.slick.session.Session): Option[A] = {
+      import simple._
+      query.firstOption
     }
   }
 
