@@ -16,6 +16,7 @@ trait KeyedTableComponent extends BasicDriver {
     class Lookup(key: K) extends KeyedTableComponent.this.Lookup[A, K, this.type](this, key)
     object Lookup {
       def apply(key: K): Lookup = new Lookup(key)
+      def unapply(lookup: Lookup): Option[K] = Some(lookup.key)
     }
     implicit def lookupMapper: BaseTypeMapper[Lookup] =
       MappedTypeMapper.base[Lookup, K](_.key, Lookup(_))
