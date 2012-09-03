@@ -17,19 +17,35 @@ trait KeyedTableComponent extends BasicDriver {
     class Lookup(key: K) extends KeyedTableComponent.this.Lookup[A, K, this.type](this, key)
     object Lookup {
       def apply(key: K): Lookup = new Lookup(key)
+      /*
+       * Create a Lookup and cache the mapper
+       */
+      def apply(key: K, mapper: A): Lookup = {
+        val ret = new Lookup(key)
+        ret._obj = Some(mapper)
+        ret
+      }
       def unapply(lookup: Lookup): Option[K] = Some(lookup.key)
     }
     implicit def lookupMapper: BaseTypeMapper[Lookup] =
       MappedTypeMapper.base[Lookup, K](_.key, Lookup(_))
   }
+  /**
+   * A Lookup is a wrapper for an entity that is lazily loaded by its key.
+   * Once it is loaded, its entity is cached and does not change.
+   */
   case class Lookup[A, K : BaseTypeMapper, T <: KeyedTable[A, K]](table: T, key: K) {
     def query: Query[T, A] = {
       import simple._
       Query(table).filter(_.key is key)
     }
+    @volatile private[KeyedTableComponent] var _obj = Option.empty[A]
+    def cached = _obj
     def obj(implicit session: scala.slick.session.Session): Option[A] = {
       import simple._
-      query.firstOption
+      if(_obj.isEmpty)
+        _obj = query.firstOption
+      _obj
     }
   }
 
