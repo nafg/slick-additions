@@ -11,7 +11,8 @@ trait KeyedTableComponent extends BasicDriver {
     def keyColumnName = "id"
     def keyColumnOptions = List(O.PrimaryKey, O.NotNull, O.AutoInc)
     def key = column[K](keyColumnName, keyColumnOptions: _*)
-    def lookup = column[Lookup](keyColumnName, keyColumnOptions: _*)
+
+    def lookup: Column[Lookup] = column[Lookup](keyColumnName, keyColumnOptions: _*)
 
     class Lookup(key: K) extends KeyedTableComponent.this.Lookup[A, K, this.type](this, key)
     object Lookup {
