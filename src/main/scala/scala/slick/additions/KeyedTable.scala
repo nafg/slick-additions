@@ -1,10 +1,8 @@
-package nafg
-package slick
+package scala.slick
 package additions
 
-
-import scala.slick.lifted._
-import scala.slick.driver._
+import lifted._
+import driver._
 
 trait KeyedTableComponent extends BasicDriver {
   abstract class KeyedTable[A, K : BaseTypeMapper](tableName: String) extends Table[A](tableName) {
@@ -49,7 +47,7 @@ trait KeyedTableComponent extends BasicDriver {
     }
   }
 
-  override val simple = new SimpleQL {
+  override val simple: SimpleQL = new SimpleQL {
     type KeyedTable[A, K] = KeyedTableComponent.this.KeyedTable[A, K]
   }
 }
