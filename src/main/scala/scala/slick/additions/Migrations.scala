@@ -195,3 +195,53 @@ trait Migrations extends BasicSQLUtilsComponent with BasicStatementBuilderCompon
     """
   }
 }
+
+/*def schemification(implicit session: Session) = new TableDDLBuilder(this) {
+      override def createTable: String = {
+        val tables = MTable.getTables(None, None, None, Some(List("TABLE"))).list
+        val b = new StringBuilder
+        tables.find(_.name.name == tableName) match { // TODO schema (we have to know the default, it == None)
+          case Some(mqt) =>
+            var first = true
+            def checkFirst = if(first) {
+              b append "alter table "
+              b append quoteIdentifier(table.tableName) append " "
+              first = false
+            } else b append ","
+            val columns = create_*
+            val existingCols = mqt.getColumns.list
+            for(c <- columns) {
+              existingCols.find(_.column == c.name) match {
+                case Some(mq) =>
+                  val stn = c.typeMapper(SlickDriver).sqlTypeName
+                  mq.sqlTypeName match {
+                    case Some(t) if t != stn =>
+                      checkFirst
+                      b append "alter column" append quoteIdentifier(c.name) append ' '
+                      b append "set data type " append stn
+                    case _ =>
+                  }
+                case None =>
+                  checkFirst
+                  b append "add column "
+                  createColumnDDLBuilder(c, table) appendColumn b
+              }
+            }
+            for(c <- existingCols if !columns.exists(_.name == c.column)) {
+              checkFirst
+              b append "drop column " append quoteIdentifier(c.column)
+            }
+          case None =>
+            b append "create table "
+            b append quoteIdentifier(table.tableName) append " ("
+            var first = true
+            for(c <- columns) {
+              if(first) first = false else b append ","
+              c.appendColumn(b)
+            }
+            addTableOptions(b)
+            b append ")"
+        }
+        b.toString
+      }
+    }*/
