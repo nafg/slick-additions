@@ -3,6 +3,7 @@ package additions
 
 import lifted._
 import driver._
+import scala.reflect.runtime.currentMirror
 
 trait KeyedTableComponent extends BasicDriver {
   abstract class KeyedTable[A, K : BaseTypeMapper](tableName: String) extends Table[A](tableName) {
@@ -47,7 +48,22 @@ trait KeyedTableComponent extends BasicDriver {
     }
   }
 
-  override val simple: SimpleQL = new SimpleQL {
+  trait SimpleQL extends super.SimpleQL {
     type KeyedTable[A, K] = KeyedTableComponent.this.KeyedTable[A, K]
   }
+  override val simple: SimpleQL = new SimpleQL {}
+}
+
+trait NamingDriver extends KeyedTableComponent {
+  abstract class KeyedTable[A, K](tableName: String)(implicit btm: BaseTypeMapper[K]) extends super.KeyedTable[A, K](tableName) {
+    def this()(implicit btm: BaseTypeMapper[K]) =
+     this(currentMirror.classSymbol(Class.forName(Thread.currentThread.getStackTrace()(2).getClassName)).name.decoded)(btm)
+
+    def column[C](options: ColumnOption[C]*)(implicit tm: TypeMapper[C]): Column[C] =
+      column[C](scala.reflect.NameTransformer.decode(Thread.currentThread.getStackTrace()(2).getMethodName), options: _*)
+  }
+  trait SimpleQL extends super.SimpleQL {
+    //override type KeyedTable[A, K] = NamingDriver.this.KeyedTable[A, K]
+  }
+  override val simple: SimpleQL = new SimpleQL {}
 }
