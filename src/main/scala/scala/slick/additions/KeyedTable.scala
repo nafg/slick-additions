@@ -5,13 +5,57 @@ import lifted._
 import driver._
 import scala.reflect.runtime.currentMirror
 
+sealed trait Entity[K, A] {
+  def entity: A
+
+  def isSaved: Boolean
+}
+case class KeylessEntity[A](entity: A) extends Entity[Nothing, A] {
+  final def isSaved = false
+}
+sealed trait KeyedEntity[K, A] extends Entity[K, A] {
+  def key: K
+}
+case class SavedEntity[K, A](key: K, entity: A) extends KeyedEntity[K, A] {
+  final def isSaved = true
+}
+case class ModifiedEntity[K, A](key: K, entity: A) extends KeyedEntity[K, A] {
+  final def isSaved = false
+}
+
+
 trait KeyedTableComponent extends BasicDriver {
-  abstract class KeyedTable[K : BaseTypeMapper, A](tableName: String) extends Table[A](tableName) {
+  abstract class KeyedTable[K : BaseTypeMapper, A](tableName: String) extends Table[KeyedEntity[K, A]](tableName) {
     def keyColumnName = "id"
     def keyColumnOptions = List(O.PrimaryKey, O.NotNull, O.AutoInc)
     def key = column[K](keyColumnName, keyColumnOptions: _*)
 
     def lookup: Column[Lookup] = column[Lookup](keyColumnName, keyColumnOptions: _*)
+
+    def forInsert: ColumnBase[A]
+
+    def insert(e: Entity[K, A])(implicit session: simple.Session): SavedEntity[K, A] = {
+      import simple._
+      e match {
+        case ke: KeylessEntity[A]  => SavedEntity(forInsert returning key insert ke.entity, ke.entity)
+        case ke: KeyedEntity[K, A] => SavedEntity(* returning key insert ke, ke.entity)
+      }
+    }
+
+    def save(e: Entity[K, A])(implicit session: simple.Session): SavedEntity[K, A] = {
+      import simple._
+      e match {
+        case ke: KeylessEntity[A] => SavedEntity(forInsert returning key insert ke.entity, ke.entity)
+        case ke: KeyedEntity[K, A] =>
+          Query(*) update ke
+          SavedEntity(ke.key, ke.entity)
+      }
+    }
+
+    def delete(ke: KeyedEntity[K, A])(implicit session: simple.Session) = {
+      import simple._
+      Query(this).filter(_.key is ke.key).delete
+    }
 
     class Lookup(key: K) extends KeyedTableComponent.this.Lookup[K, A, this.type](this, key)
     object Lookup {
@@ -34,7 +78,7 @@ trait KeyedTableComponent extends BasicDriver {
    * Once it is loaded, its entity is cached and does not change.
    */
   case class Lookup[K : BaseTypeMapper, A, T <: KeyedTable[K, A]](table: T, key: K) {
-    def query: Query[T, A] = {
+    def query: Query[T, KeyedEntity[K, A]] = {
       import simple._
       Query(table).filter(_.key is key)
     }
@@ -43,7 +87,7 @@ trait KeyedTableComponent extends BasicDriver {
     def obj(implicit session: scala.slick.session.Session): Option[A] = {
       import simple._
       if(_obj.isEmpty)
-        _obj = query.firstOption
+        _obj = query.firstOption.map(_.entity)
       _obj
     }
   }
