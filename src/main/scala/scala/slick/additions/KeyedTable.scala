@@ -46,9 +46,12 @@ trait KeyedTableComponent extends BasicDriver {
       def compute(implicit session: simple.Session): Option[A] = query.firstOption
     }
 
-    case class OneToMany[B, TB <: simple.Table[B]](otherTable: TB)(column: TB => Column[K]) extends additions.Lookup[Seq[B], simple.Session] {
+    case class OneToMany[B, TB <: simple.Table[B]](key: Option[K], otherTable: TB)(column: TB => Column[Lookup]) extends additions.Lookup[Seq[B], simple.Session] {
       import simple._
-      def query: Query[TB, B] = Query(otherTable).filter(column(_) is key)
+      def query: Query[TB, B] = for {
+        t <- KeyedTable.this if key map (t.key is _) getOrElse ConstColumn.TRUE
+        o <- otherTable      if column(o) is lookup
+      } yield o
       def compute(implicit session: simple.Session): Seq[B] = query.list
     }
 
@@ -57,6 +60,9 @@ trait KeyedTableComponent extends BasicDriver {
   }
 
   abstract class EntityTable[K : BaseTypeMapper, A](tableName: String) extends KeyedTable[K, KeyedEntity[K, A]](tableName) {
+    type Ent      = Entity[K, A]
+    type KeyedEnt = KeyedEntity[K, A]
+
     private var _mapping = Option.empty[(ColumnBase[A], (ColumnBase[KeyedEntity[K, A]]))]
     def mapping = _mapping
     def mapping_=(m: (ColumnBase[A], (ColumnBase[KeyedEntity[K, A]]))) =
@@ -64,7 +70,7 @@ trait KeyedTableComponent extends BasicDriver {
     def mapping_=(c: Column[A]) =
       _mapping = Some((c, key ~ c <> (SavedEntity(_, _), ke => Some((ke.key, ke.value)))))
     def mapping_=[T1,T2,T3](p: Projection3[T1,T2,T3])(implicit ev: A =:= (T1, T2, T3)) =
-      _mapping = Some(p <-> (Function.untupled(x => x.asInstanceOf[A]), x => Some(x)))
+      _mapping = Some(p <-> (_ => Function.untupled(x => x.asInstanceOf[A]), x => Some(x)))
 
     def forInsert: ColumnBase[A] = _mapping map (_._1) getOrElse sys.error("No entity mapping provided")
 
@@ -74,8 +80,8 @@ trait KeyedTableComponent extends BasicDriver {
     def insert(e: Entity[K, A])(implicit session: simple.Session): SavedEntity[K, A] = {
       import simple._
       e match {
-        case ke: KeylessEntity[K, A]  => SavedEntity(forInsert returning key insert ke.value, ke.value)
-        case ke: KeyedEntity[K, A] => SavedEntity(* returning key insert ke, ke.value)
+        case ke: KeylessEntity[K, A] => SavedEntity(forInsert returning key insert ke.value, ke.value)
+        case ke: KeyedEntity[K, A]   => SavedEntity(* returning key insert ke, ke.value)
       }
     }
     def update(ke: KeyedEntity[K, A])(implicit session: simple.Session): SavedEntity[K, A] = {
@@ -86,7 +92,7 @@ trait KeyedTableComponent extends BasicDriver {
     def save(e: Entity[K, A])(implicit session: simple.Session): SavedEntity[K, A] = {
       e match {
         case ke: KeylessEntity[K, A] => insert(ke)
-        case ke: KeyedEntity[K, A] => update(ke)
+        case ke: KeyedEntity[K, A]   => update(ke)
       }
     }
 
@@ -99,29 +105,30 @@ trait KeyedTableComponent extends BasicDriver {
     trait EntityMapping[Ap, Unap] {
       type _Ap = Ap
       type _Unap = Unap
-      def <->(ap: Ap, unap: Unap): (ColumnBase[A], ColumnBase[KeyedEntity[K, A]])
+      def <->(ap: Option[K] => Ap, unap: Unap): (ColumnBase[A], ColumnBase[KeyedEntity[K, A]])
+      def <->(ap: Ap, unap: Unap): (ColumnBase[A], ColumnBase[KeyedEntity[K, A]]) = <->(_ => ap, unap)
     }
     implicit class EntityMapping2[T1, T2](val p: Projection2[T1, T2]) extends EntityMapping[(T1, T2) => A, A => Option[(T1, T2)]] {
-      def <->(ap: _Ap, unap: _Unap) = (p <> (ap, unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
-        (t: (K, T1, T2)) => SavedEntity(t._1, ap(t._2, t._3)),
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = (p <> (ap(None), unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
+        (t: (K, T1, T2)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3)),
         (ke: KeyedEntity[K, A]) => unap(ke.value) map (t => (ke.key, t._1, t._2))
       )
     }
     implicit class EntityMapping3[T1, T2, T3](val p: Projection3[T1, T2, T3]) extends EntityMapping[(T1, T2, T3) => A, A => Option[(T1, T2, T3)]] {
-      def <->(ap: _Ap, unap: _Unap) = (p <> (ap, unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
-        (t: (K, T1, T2, T3)) => SavedEntity(t._1, ap(t._2, t._3, t._4)),
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = (p <> (ap(None), unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
+        (t: (K, T1, T2, T3)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4)),
         (ke: KeyedEntity[K, A]) => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3))
       )
     }
     implicit class EntityMapping4[T1, T2, T3, T4](val p: Projection4[T1, T2, T3, T4]) extends EntityMapping[(T1, T2, T3, T4) => A, A => Option[(T1, T2, T3, T4)]] {
-      def <->(ap: _Ap, unap: _Unap) = (p <> (ap, unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
-        (t: (K, T1, T2, T3, T4)) => SavedEntity(t._1, ap(t._2, t._3, t._4, t._5)),
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = (p <> (ap(None), unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
+        (t: (K, T1, T2, T3, T4)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5)),
         (ke: KeyedEntity[K, A]) => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4))
       )
     }
     implicit class EntityMapping5[T1, T2, T3, T4, T5](val p: Projection5[T1, T2, T3, T4, T5]) extends EntityMapping[(T1, T2, T3, T4, T5) => A, A => Option[(T1, T2, T3, T4, T5)]] {
-      def <->(ap: _Ap, unap: _Unap) = (p <> (ap, unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
-        (t: (K, T1, T2, T3, T4, T5)) => SavedEntity(t._1, ap(t._2, t._3, t._4, t._5, t._6)),
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = (p <> (ap(None), unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
+        (t: (K, T1, T2, T3, T4, T5)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6)),
         (ke: KeyedEntity[K, A]) => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5))
       )
     }
