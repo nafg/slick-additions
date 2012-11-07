@@ -38,22 +38,18 @@ trait KeyedTableComponent extends BasicDriver {
 
     def lookup: Column[Lookup] = column[Lookup](keyColumnName, keyColumnOptions: _*)
 
-    case class Lookup(key: K) extends additions.Lookup[A, simple.Session] {
+    case class Lookup(key: K) extends additions.Lookup[Option[A], simple.Session] {
       import simple._
       def query: Query[simple.KeyedTable[K, A], A] = {
         Query(KeyedTable.this).filter(_.key is key)
       }
       def compute(implicit session: simple.Session): Option[A] = query.firstOption
     }
-    object Lookup {
-      /*
-       * Create a Lookup and cache the mapper
-       */
-      def apply(key: K, mapper: A): Lookup = {
-        val ret = new Lookup(key)
-        ret._cached = Some(mapper)
-        ret
-      }
+
+    case class OneToMany[B, TB <: simple.Table[B]](otherTable: TB)(column: TB => Column[K]) extends additions.Lookup[Seq[B], simple.Session] {
+      import simple._
+      def query: Query[TB, B] = Query(otherTable).filter(column(_) is key)
+      def compute(implicit session: simple.Session): Seq[B] = query.list
     }
 
     implicit def lookupMapper: BaseTypeMapper[Lookup] =
@@ -164,13 +160,24 @@ abstract class Lookup[A, Param] {
    * Force the computation. Does not cache its result.
    * @return the result of the computation
    */
-  def compute(implicit session: Param): Option[A]
+  def compute(implicit param: Param): A
 
   @volatile protected var _cached = Option.empty[A]
   /**
    * @return the possibly cached value
    */
   def cached: Option[A] = _cached
+
+  /**
+   * Directly set the cache
+   * @return `this`
+   * @example {{{ myLookup ()= myValue }}}
+   */
+  def update(a: A): this.type = {
+    _cached = Some(a)
+    this
+  }
+
   /**
    * Clear the cache
    */
@@ -179,9 +186,10 @@ abstract class Lookup[A, Param] {
    * Return the value.
    * If it hasn't been computed yet, compute it and cache the result.
    * @return the cached value
+   * @example {{{ myLookup() }}}
    */
-  def apply()(implicit session: Param): Option[A] = {
-    _cached = cached orElse compute
-    _cached
+  def apply()(implicit param: Param): A = {
+    _cached = cached orElse Some(compute)
+    _cached.get
   }
 }
