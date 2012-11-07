@@ -38,7 +38,7 @@ trait KeyedTableComponent extends BasicDriver {
 
     def lookup: Column[Lookup] = column[Lookup](keyColumnName, keyColumnOptions: _*)
 
-    class Lookup(val key: K) extends additions.Lookup[A, simple.Session] {
+    case class Lookup(key: K) extends additions.Lookup[A, simple.Session] {
       import simple._
       def query: Query[simple.KeyedTable[K, A], A] = {
         Query(KeyedTable.this).filter(_.key is key)
@@ -46,7 +46,6 @@ trait KeyedTableComponent extends BasicDriver {
       def compute(implicit session: simple.Session): Option[A] = query.firstOption
     }
     object Lookup {
-      def apply(key: K): Lookup = new Lookup(key)
       /*
        * Create a Lookup and cache the mapper
        */
@@ -55,7 +54,6 @@ trait KeyedTableComponent extends BasicDriver {
         ret._cached = Some(mapper)
         ret
       }
-      def unapply(lookup: Lookup): Option[K] = Some(lookup.key)
     }
 
     implicit def lookupMapper: BaseTypeMapper[Lookup] =
