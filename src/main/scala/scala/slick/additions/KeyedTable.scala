@@ -10,17 +10,17 @@ sealed trait Entity[K, A] {
 
   def isSaved: Boolean
 
-  def transform(f: A => A): Entity[K, A]
+  def map(f: A => A): Entity[K, A]
 }
 case class KeylessEntity[K, A](value: A) extends Entity[K, A] {
   final def isSaved = false
 
-  def transform(f: A => A): KeylessEntity[K, A] = KeylessEntity[K, A](f(value))
+  def map(f: A => A): KeylessEntity[K, A] = KeylessEntity[K, A](f(value))
 }
 sealed trait KeyedEntity[K, A] extends Entity[K, A] {
   def key: K
 
-  def transform(f: A => A): ModifiedEntity[K, A] = ModifiedEntity[K, A](key, f(value))
+  def map(f: A => A): ModifiedEntity[K, A] = ModifiedEntity[K, A](key, f(value))
 }
 case class SavedEntity[K, A](key: K, value: A) extends KeyedEntity[K, A] {
   final def isSaved = true
