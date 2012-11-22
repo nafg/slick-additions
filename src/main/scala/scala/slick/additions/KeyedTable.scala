@@ -5,33 +5,37 @@ import lifted._
 import driver._
 import scala.reflect.runtime.currentMirror
 
-sealed trait Entity[K, A] {
+sealed trait Entity[K, +A] {
   def value: A
 
   def isSaved: Boolean
 
-  def map(f: A => A): Entity[K, A]
+  def map[B >: A](f: A => B): Entity[K, B]
+
+  def duplicate = new KeylessEntity[K, A](value)
 }
-case class KeylessEntity[K, A](value: A) extends Entity[K, A] {
+class KeylessEntity[K, +A](val value: A) extends Entity[K, A] {
   final def isSaved = false
 
-  def map(f: A => A): KeylessEntity[K, A] = KeylessEntity[K, A](f(value))
+  override def equals(that: Any) = this eq that.asInstanceOf[AnyRef]
+
+  def map[B >: A](f: A => B): KeylessEntity[K, B] = new KeylessEntity[K, B](f(value))
 }
-sealed trait KeyedEntity[K, A] extends Entity[K, A] {
+sealed trait KeyedEntity[K, +A] extends Entity[K, A] {
   def key: K
 
-  def map(f: A => A): ModifiedEntity[K, A] = ModifiedEntity[K, A](key, f(value))
+  def map[B >: A](f: A => B): ModifiedEntity[K, B] = ModifiedEntity[K, B](key, f(value))
 }
-case class SavedEntity[K, A](key: K, value: A) extends KeyedEntity[K, A] {
+case class SavedEntity[K, +A](key: K, value: A) extends KeyedEntity[K, A] {
   final def isSaved = true
 }
-case class ModifiedEntity[K, A](key: K, value: A) extends KeyedEntity[K, A] {
+case class ModifiedEntity[K, +A](key: K, value: A) extends KeyedEntity[K, A] {
   final def isSaved = false
 }
 
 
 trait KeyedTableComponent extends BasicDriver {
-  abstract class KeyedTable[K : BaseTypeMapper, A](tableName: String) extends Table[A](tableName) {
+  abstract class KeyedTable[K : BaseTypeMapper, A](tableName: String) extends Table[A](tableName) { keyedTable =>
     def keyColumnName = "id"
     def keyColumnOptions = List(O.PrimaryKey, O.NotNull, O.AutoInc)
     def key = column[K](keyColumnName, keyColumnOptions: _*)
@@ -46,13 +50,48 @@ trait KeyedTableComponent extends BasicDriver {
       def compute(implicit session: simple.Session): Option[A] = query.firstOption
     }
 
-    case class OneToMany[B, TB <: simple.Table[B]](key: Option[K], otherTable: TB)(column: TB => Column[Lookup]) extends additions.Lookup[Seq[B], simple.Session] {
+
+    class OneToMany[E >: B, B, TB <: simple.Table[B]](
+      otherTable: TB with simple.Table[B], thisLookup: Option[Lookup]
+    )(
+      column: TB => Column[Lookup], setLookup: Lookup => E => E
+    ) extends additions.SeqLookup[E, simple.Session] with DiffSeq[E, OneToMany[E, B, TB]] {
       import simple._
+
       def query: Query[TB, B] = for {
-        t <- KeyedTable.this if key map (t.key is _) getOrElse ConstColumn.TRUE
-        o <- otherTable      if column(o) is lookup
+        t <- KeyedTable.this if thisLookup map (t.key is _.key) getOrElse ConstColumn.TRUE
+        o <- otherTable if column(o) is lookup
       } yield o
-      def compute(implicit session: simple.Session): Seq[B] = query.list
+
+      def compute(implicit session: simple.Session): Seq[E] = query.list
+
+      protected def copy(items: Seq[Handle[E]]) = new OneToMany[E, B, TB](otherTable, thisLookup)(column, setLookup) {
+        override val initialItems = OneToMany.this.initialItems
+        override val currentItems = items
+      }
+
+      def withLookup(lookup: Lookup) = (new OneToMany[E, B, TB](otherTable, Some(lookup))(column, setLookup) {
+        override val initialItems = OneToMany.this.initialItems
+        override val currentItems = OneToMany.this.currentItems
+      }) map setLookup(lookup)
+
+      def save[BK, ETB <: simple.EntityTable[BK, B]](implicit session: simple.Session, ev1: TB <:< ETB, ev2: B <:< ETB#KEnt) = ??? // TODO
+    }
+
+    def OneToMany[B, TB <: simple.Table[B]](
+      otherTable: TB with simple.Table[B], lookup: Option[Lookup]
+    )(
+      column: TB => Column[Lookup], setLookup: Lookup => B => B, initial: Seq[B] = null
+    ) = new OneToMany[B, B, TB](otherTable, lookup)(column, setLookup) {
+      _cached = Option(initial)
+    }
+
+    def OneToManyEnt[K, A, TB <: simple.EntityTable[K, A]](
+      otherTable: TB with simple.EntityTable[K, A], lookup: Option[Lookup]
+    )(
+      column: TB => Column[Lookup], setLookup: Lookup => A => A, initial: Seq[Entity[K, A]] = null
+    ) = new OneToMany[Entity[K, A], KeyedEntity[K, A], TB](otherTable, lookup)(column, l => _.map(setLookup(l))) {
+      _cached = Option(initial)
     }
 
     implicit def lookupMapper: BaseTypeMapper[Lookup] =
@@ -60,43 +99,53 @@ trait KeyedTableComponent extends BasicDriver {
   }
 
   abstract class EntityTable[K : BaseTypeMapper, A](tableName: String) extends KeyedTable[K, KeyedEntity[K, A]](tableName) {
-    type Ent      = Entity[K, A]
-    type KeyedEnt = KeyedEntity[K, A]
+    type Value = A
+    type Ent   = Entity[K, A]
+    type KEnt  = KeyedEntity[K, A]
 
-    private var _mapping = Option.empty[(ColumnBase[A], (ColumnBase[KeyedEntity[K, A]]))]
-    def mapping = _mapping
-    def mapping_=(m: (ColumnBase[A], (ColumnBase[KeyedEntity[K, A]]))) =
-      _mapping = Some(m)
-    def mapping_=(c: Column[A]) =
-      _mapping = Some((c, key ~ c <> (SavedEntity(_, _), ke => Some((ke.key, ke.value)))))
-    def mapping_=[T1,T2,T3](p: Projection3[T1,T2,T3])(implicit ev: A =:= (T1, T2, T3)) =
-      _mapping = Some(p <-> (_ => Function.untupled(x => x.asInstanceOf[A]), x => Some(x)))
+    def Ent(a: A) = new KeylessEntity[K, A](a)
 
-    def forInsert: ColumnBase[A] = _mapping map (_._1) getOrElse sys.error("No entity mapping provided")
+    case class Mapping(forInsert: ColumnBase[A], * : ColumnBase[KEnt])
+    object Mapping {
+      implicit def fromColumn(c: Column[A]) =
+        Mapping(
+          c,
+          key ~ c <> (
+            SavedEntity(_, _),
+            { case ke: KEnt => Some((ke.key, ke.value)) }
+          )
+        )
+      implicit def fromProjection3[T1,T2,T3](p: Projection3[T1,T2,T3])(implicit ev: A =:= (T1, T2, T3)) =
+        p <-> (_ => Function.untupled(x => x.asInstanceOf[A]), x => Some(x))
+    }
 
-    def * = _mapping map (_._2) getOrElse sys.error("No entity mapping provided")
+    def mapping: Mapping
 
-    def insert(v: A)(implicit session: simple.Session): SavedEntity[K, A] = insert(KeylessEntity[K, A](v))
+    def forInsert: ColumnBase[A] = mapping.forInsert
+
+    def * = mapping.*
+
+    def insert(v: A)(implicit session: simple.Session): SavedEntity[K, A] = insert(Ent(v))
     def insert(e: Entity[K, A])(implicit session: simple.Session): SavedEntity[K, A] = {
       import simple._
       e match {
-        case ke: KeylessEntity[K, A] => SavedEntity(forInsert returning key insert ke.value, ke.value)
-        case ke: KeyedEntity[K, A]   => SavedEntity(* returning key insert ke, ke.value)
+        case ke: KEnt => SavedEntity(* returning key insert ke, ke.value)
+        case ke: Ent  => SavedEntity(forInsert returning key insert ke.value, ke.value)
       }
     }
-    def update(ke: KeyedEntity[K, A])(implicit session: simple.Session): SavedEntity[K, A] = {
+    def update(ke: KEnt)(implicit session: simple.Session): SavedEntity[K, A] = {
       import simple._
       Query(*) update ke
       SavedEntity(ke.key, ke.value)
     }
     def save(e: Entity[K, A])(implicit session: simple.Session): SavedEntity[K, A] = {
       e match {
-        case ke: KeylessEntity[K, A] => insert(ke)
-        case ke: KeyedEntity[K, A]   => update(ke)
+        case ke: KEnt => update(ke)
+        case ke: Ent  => insert(ke)
       }
     }
 
-    def delete(ke: KeyedEntity[K, A])(implicit session: simple.Session) = {
+    def delete(ke: KEnt)(implicit session: simple.Session) = {
       import simple._
       Query(this).filter(_.key is ke.key).delete
     }
@@ -105,31 +154,43 @@ trait KeyedTableComponent extends BasicDriver {
     trait EntityMapping[Ap, Unap] {
       type _Ap = Ap
       type _Unap = Unap
-      def <->(ap: Option[K] => Ap, unap: Unap): (ColumnBase[A], ColumnBase[KeyedEntity[K, A]])
-      def <->(ap: Ap, unap: Unap): (ColumnBase[A], ColumnBase[KeyedEntity[K, A]]) = <->(_ => ap, unap)
+      def <->(ap: Option[K] => Ap, unap: Unap): Mapping
+      def <->(ap: Ap, unap: Unap): Mapping = <->(_ => ap, unap)
     }
     implicit class EntityMapping2[T1, T2](val p: Projection2[T1, T2]) extends EntityMapping[(T1, T2) => A, A => Option[(T1, T2)]] {
-      def <->(ap: Option[K] => _Ap, unap: _Unap) = (p <> (ap(None), unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
-        (t: (K, T1, T2)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3)),
-        (ke: KeyedEntity[K, A]) => unap(ke.value) map (t => (ke.key, t._1, t._2))
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~ p).<>[KEnt](
+          (t: (K, T1, T2)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2)) }
+        )
       )
     }
     implicit class EntityMapping3[T1, T2, T3](val p: Projection3[T1, T2, T3]) extends EntityMapping[(T1, T2, T3) => A, A => Option[(T1, T2, T3)]] {
-      def <->(ap: Option[K] => _Ap, unap: _Unap) = (p <> (ap(None), unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
-        (t: (K, T1, T2, T3)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4)),
-        (ke: KeyedEntity[K, A]) => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3))
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~ p).<>[KEnt](
+          (t: (K, T1, T2, T3)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3)) }
+        )
       )
     }
     implicit class EntityMapping4[T1, T2, T3, T4](val p: Projection4[T1, T2, T3, T4]) extends EntityMapping[(T1, T2, T3, T4) => A, A => Option[(T1, T2, T3, T4)]] {
-      def <->(ap: Option[K] => _Ap, unap: _Unap) = (p <> (ap(None), unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
-        (t: (K, T1, T2, T3, T4)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5)),
-        (ke: KeyedEntity[K, A]) => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4))
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~ p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4)) }
+        )
       )
     }
     implicit class EntityMapping5[T1, T2, T3, T4, T5](val p: Projection5[T1, T2, T3, T4, T5]) extends EntityMapping[(T1, T2, T3, T4, T5) => A, A => Option[(T1, T2, T3, T4, T5)]] {
-      def <->(ap: Option[K] => _Ap, unap: _Unap) = (p <> (ap(None), unap)) -> (key ~ p).<>[KeyedEntity[K, A]](
-        (t: (K, T1, T2, T3, T4, T5)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6)),
-        (ke: KeyedEntity[K, A]) => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5))
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~ p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5)) }
+        )
       )
     }
   }
@@ -153,50 +214,4 @@ trait NamingDriver extends KeyedTableComponent {
     //override type KeyedTable[A, K] = NamingDriver.this.KeyedTable[A, K]
   }
   override val simple: SimpleQL = new SimpleQL {}
-}
-
-/**
- * A Lookup is a wrapper for a value that is lazily loaded.
- * Once it is loaded, its entity is cached and
- * does not need to be computed again.
- * It's different than other lazy computation wrappers
- * in that its computation has access to a typed parameter.
- */
-abstract class Lookup[A, Param] {
-  /**
-   * Force the computation. Does not cache its result.
-   * @return the result of the computation
-   */
-  def compute(implicit param: Param): A
-
-  @volatile protected var _cached = Option.empty[A]
-  /**
-   * @return the possibly cached value
-   */
-  def cached: Option[A] = _cached
-
-  /**
-   * Directly set the cache
-   * @return `this`
-   * @example {{{ myLookup ()= myValue }}}
-   */
-  def update(a: A): this.type = {
-    _cached = Some(a)
-    this
-  }
-
-  /**
-   * Clear the cache
-   */
-  def clear = _cached = None
-  /**
-   * Return the value.
-   * If it hasn't been computed yet, compute it and cache the result.
-   * @return the cached value
-   * @example {{{ myLookup() }}}
-   */
-  def apply()(implicit param: Param): A = {
-    _cached = cached orElse Some(compute)
-    _cached.get
-  }
 }
