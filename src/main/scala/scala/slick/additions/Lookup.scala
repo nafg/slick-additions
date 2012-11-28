@@ -50,6 +50,7 @@ object IdGenerator {
 class Handle[+A](val value: A, val id: Int = IdGenerator.next) {
   def updated[B >: A](nv: B) = new Handle[B](nv, id)
   def map[B >: A](f: A => B) = updated(f(value))
+  override def toString = s"Handle(id = $id, value = $value)"
 }
 
 /**
