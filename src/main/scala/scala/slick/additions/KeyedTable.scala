@@ -58,10 +58,12 @@ trait KeyedTableComponent extends BasicDriver {
     ) extends additions.SeqLookup[E, simple.Session] with DiffSeq[E, OneToMany[E, B, TB]] {
       import simple._
 
-      def query: Query[TB, B] = for {
-        t <- KeyedTable.this if thisLookup map (t.key is _.key) getOrElse ConstColumn.TRUE
-        o <- otherTable if column(o) is lookup
-      } yield o
+      def query: Query[TB, B] =
+        Query(KeyedTable.this)
+          .filter(t => thisLookup map (t.key is _.key) getOrElse ConstColumn(true))
+          .flatMap{ t =>
+            Query(otherTable).filter(column(_) is t.asInstanceOf[KeyedTable.this.type].lookup)
+          }
 
       def compute(implicit session: simple.Session): Seq[E] = query.list
 
