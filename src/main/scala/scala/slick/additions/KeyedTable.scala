@@ -72,10 +72,13 @@ trait KeyedTableComponent extends BasicDriver {
         override val currentItems = items
       }
 
-      def withLookup(lookup: Lookup) = (new OneToMany[E, B, TB](otherTable, Some(lookup))(column, setLookup) {
-        override val initialItems = OneToMany.this.initialItems
-        override val currentItems = OneToMany.this.currentItems
-      }) map setLookup(lookup)
+      def withLookup(lookup: Lookup) = {
+        val f = setLookup(lookup)
+        new OneToMany[E, B, TB](otherTable, Some(lookup))(column, setLookup) {
+          override def initialItems = OneToMany.this.initialItems
+          override def currentItems = OneToMany.this.currentItems map (_ map f)
+        }
+      }
 
       def save[BK, ETB <: simple.EntityTable[BK, B]](implicit session: simple.Session, ev1: TB <:< ETB, ev2: B <:< ETB#KEnt) = ??? // TODO
     }
