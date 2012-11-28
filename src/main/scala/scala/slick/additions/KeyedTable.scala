@@ -70,6 +70,7 @@ trait KeyedTableComponent extends BasicDriver {
       protected def copy(items: Seq[Handle[E]]) = new OneToMany[E, B, TB](otherTable, thisLookup)(column, setLookup) {
         override val initialItems = OneToMany.this.initialItems
         override val currentItems = items
+        override def apply()(implicit session: Session) = currentItems map (_.value)
       }
 
       def withLookup(lookup: Lookup) = {
