@@ -56,6 +56,24 @@ trait KeyedTableComponent extends BasicDriver {
     )(
       column: TB => Column[Lookup], setLookup: Lookup => E => E
     ) extends additions.SeqLookup[E, simple.Session] with DiffSeq[E, OneToMany[E, B, TB]] {
+
+      protected val isCopy = false
+
+      protected def copy(items: Seq[Handle[E]]) = new OneToMany[E, B, TB](otherTable, thisLookup)(column, setLookup) {
+        override val initialItems = OneToMany.this.initialItems
+        override val currentItems = items
+        override def apply()(implicit session: simple.Session) = currentItems map (_.value)
+        override val isCopy = true
+      }
+
+      def withLookup(lookup: Lookup) = if(isCopy) this map setLookup(lookup) else {
+        val f = setLookup(lookup)
+        new OneToMany[E, B, TB](otherTable, Some(lookup))(column, setLookup) {
+          _cached = OneToMany.this.cached
+          override def currentItems = super.currentItems map (_ map f)
+        }
+      }
+
       import simple._
 
       def query: Query[TB, B] =
@@ -65,23 +83,9 @@ trait KeyedTableComponent extends BasicDriver {
             Query(otherTable).filter(column(_) is t.asInstanceOf[KeyedTable.this.type].lookup)
           }
 
-      def compute(implicit session: simple.Session): Seq[E] = query.list
+      def compute(implicit session: Session): Seq[E] = query.list
 
-      protected def copy(items: Seq[Handle[E]]) = new OneToMany[E, B, TB](otherTable, thisLookup)(column, setLookup) {
-        override val initialItems = OneToMany.this.initialItems
-        override val currentItems = items
-        override def apply()(implicit session: Session) = currentItems map (_.value)
-      }
-
-      def withLookup(lookup: Lookup) = {
-        val f = setLookup(lookup)
-        new OneToMany[E, B, TB](otherTable, Some(lookup))(column, setLookup) {
-          override def initialItems = OneToMany.this.initialItems
-          override def currentItems = OneToMany.this.currentItems map (_ map f)
-        }
-      }
-
-      def save[BK, ETB <: simple.EntityTable[BK, B]](implicit session: simple.Session, ev1: TB <:< ETB, ev2: B <:< ETB#KEnt) = ??? // TODO
+      def save[BK, ETB <: simple.EntityTable[BK, B]](implicit session: Session, ev1: TB <:< ETB, ev2: B <:< ETB#KEnt) = ??? // TODO
     }
 
     def OneToMany[B, TB <: simple.Table[B]](
