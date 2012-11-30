@@ -67,10 +67,12 @@ trait Enum extends Bitmasked {
      */
     val value: Value = this
   }
-  val values: Seq[Value]
 
-  def bitFor: Value => Int = values.indexOf(_)
+  def valueBits: Map[Int, Value]
 
-  def forBit = values(_)
+  def values = valueBits.toSeq.sortBy(_._1).map(_._2)
 
+  def bitFor: Value => Int = v => valueBits find (_._2 == v) map (_._1) getOrElse sys.error(s"No value $v in Enum $this")
+
+  def forBit = valueBits(_)
 }
