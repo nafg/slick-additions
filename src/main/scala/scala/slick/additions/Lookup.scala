@@ -9,7 +9,9 @@ package additions
  * in that the computation has access to a typed parameter.
  */
 abstract class Lookup[A, Param] {
-  @volatile protected var _cached = Option.empty[A]
+  @volatile private var _cached = Option.empty[A]
+
+  protected def cached_=(x: Option[A]) = _cached = x
 
   /**
    * Evaluate the computation, whether or not there is a value cached.
@@ -22,7 +24,7 @@ abstract class Lookup[A, Param] {
    * Force the cache to be updaed by recomputing the value
    */
   def recompute(implicit param: Param) {
-    _cached = Some(compute)
+    cached = Some(compute)
   }
 
   /**
@@ -38,7 +40,7 @@ abstract class Lookup[A, Param] {
    */
   def apply()(implicit param: Param): A = {
     val ret = cached orElse Some(compute)
-    _cached = ret
+    cached = ret
     ret.get
   }
 }
@@ -131,7 +133,11 @@ trait DiffSeq[A, +Self <: DiffSeq[A, Self]] { this: Self =>
  * are modifications.
  */
 trait SeqLookup[A, Param] extends Lookup[Seq[A], Param] with DiffSeq[A, SeqLookup[A, Param]] {
-  def initialItems: Seq[Handle[A]] = _cached getOrElse Seq.empty map { new Handle[A](_) }
+  @volatile private var _cached = Option.empty[Seq[Handle[A]]]
+
+  override protected def cached_=(x: Option[Seq[A]]) = _cached = x map (_ map { new Handle(_) })
+
+  def initialItems: Seq[Handle[A]] = _cached getOrElse Seq.empty
 
   override def apply()(implicit param: Param): Seq[A] = {
     if(newItems.nonEmpty || replacedItems.nonEmpty || removedItems.nonEmpty)
