@@ -47,6 +47,7 @@ object IdGenerator {
   private val ai = new java.util.concurrent.atomic.AtomicInteger
   def next = ai.getAndIncrement
 }
+
 class Handle[+A](val value: A, val id: Int = IdGenerator.next) {
   def updated[B >: A](nv: B) = new Handle[B](nv, id)
   def map[B >: A](f: A => B) = updated(f(value))
@@ -108,9 +109,14 @@ trait DiffSeq[A, +Self <: DiffSeq[A, Self]] { this: Self =>
   def map(f: A => A)      = copy(currentItems map (_ map f))
   /**
    * Replace an item.
-   * @example {{{ mySeqLookup(oldItem) = newItem }}}
+   * @example {{{ mySeqLookup.updated(oldHandle, newItem) }}}
    */
   def updated(old: Handle[A], nw: A) = copy(currentItems map { case ref if old.id == ref.id => ref updated nw;  case x => x })
+  /**
+   * Replace an item by passing it through a function.
+   * @example {{{ mySeqLookup.updated(oldHandle, x => f(x)) }}}
+   */
+  def transform(old: Handle[A], f: A => A) = copy(currentItems map { case ref if old.id == ref.id => ref map f;  case x => x })
   /**
    * Remove all items
    */
