@@ -54,9 +54,11 @@ trait KeyedTableComponent extends BasicDriver {
 
 
     class OneToMany[E >: B, B, TB <: simple.Table[B]](
-      otherTable: TB with simple.Table[B], thisLookup: Option[Lookup]
+      private[KeyedTable] val otherTable: TB with simple.Table[B],
+      private[KeyedTable] val thisLookup: Option[Lookup]
     )(
-      column: TB => Column[Lookup], setLookup: Lookup => E => E
+      private[KeyedTable] val column: TB => Column[Lookup],
+      private[KeyedTable] val setLookup: Lookup => E => E
     ) extends additions.SeqLookup[E, simple.Session] with DiffSeq[E, OneToMany[E, B, TB]] {
 
       protected val isCopy = false
@@ -86,9 +88,27 @@ trait KeyedTableComponent extends BasicDriver {
           }
 
       def compute(implicit session: Session): Seq[E] = query.list
-
-      def save[BK, ETB <: simple.EntityTable[BK, B]](implicit session: Session, ev1: TB <:< ETB, ev2: B <:< ETB#KEnt) = ??? // TODO
     }
+
+    implicit class OneToManyEntSave[K, A, TB <: simple.EntityTable[K, A]](oneToMany: OneToMany[TB#Ent, TB#KEnt, TB]) {
+      import simple._
+      import oneToMany._
+      def saved(implicit session: Session) = {
+        newItems foreach { i: Handle[TB#Ent] =>
+          otherTable.insert(i.value)
+        }
+        removedItems.map(_.value) foreach {
+          case e: KeyedEntity[K, A] => otherTable.delete(e)
+          case _                    =>
+        }
+        replacedItems.map(_._2.value) foreach {
+          case e: KeyedEntity[K, A] => otherTable.update(e)
+          case _                    =>
+        }
+        new OneToMany[TB#Ent, TB#KEnt, TB](otherTable, thisLookup)(oneToMany.column, setLookup)
+      }
+    }
+
 
     def OneToMany[B, TB <: simple.Table[B]](
       otherTable: TB with simple.Table[B], lookup: Option[Lookup]
