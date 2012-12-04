@@ -20,6 +20,8 @@ class KeylessEntity[K, +A](val value: A) extends Entity[K, A] {
   override def equals(that: Any) = this eq that.asInstanceOf[AnyRef]
 
   def map[B >: A](f: A => B): KeylessEntity[K, B] = new KeylessEntity[K, B](f(value))
+
+  override def toString = s"KeylessEntity($value)"
 }
 sealed trait KeyedEntity[K, +A] extends Entity[K, A] {
   def key: K
