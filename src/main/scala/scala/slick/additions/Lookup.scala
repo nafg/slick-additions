@@ -80,11 +80,12 @@ trait DiffSeq[A, +Self <: DiffSeq[A, Self]] { this: Self =>
    * Items removed since
    */
   final def removedItems = initialItems filterNot { r => currentItems.exists(_.id == r.id) }
+
   /**
    * Items replaced since
    */
-  final def replacedItems = currentItems flatMap {
-    case ref => initialItems.find(_.id == ref.id).map(_ -> ref)
+  final def replacedItems = currentItems flatMap { c =>
+    initialItems.find(i => i.id == c.id && (i.value != c.value)).map(i => (i, c))
   }
 
   protected def copy(items: Seq[Handle[A]]): Self
