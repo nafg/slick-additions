@@ -75,18 +75,32 @@ trait DiffSeq[A, +Self <: DiffSeq[A, Self]] { this: Self =>
   /**
    * Items added since
    */
-  final def newItems = currentItems filterNot { r => initialItems.exists(_.id == r.id) }
+  final def newItems = currentItems filterNot isNew
+
+  def isNew(r: Handle[A]) = initialItems.exists(_.id == r.id)
+
   /**
    * Items removed since
    */
-  final def removedItems = initialItems filterNot { r => currentItems.exists(_.id == r.id) }
+  final def removedItems = initialItems filterNot isRemoved
+
+
+  def isRemoved(r: Handle[A]) = currentItems.exists(_.id == r.id)
 
   /**
    * Items replaced since
    */
-  final def replacedItems = currentItems flatMap { c =>
+  final def replacedItems = currentItems flatMap replaces
+
+  /**
+   * If this item replaces a previous item, return
+   * them in a Some(Tuple2).
+   * @param c the `Handle` of the item to search
+   * @return `None` if the item is new or original,
+   *        otherwise a `Some` of `(`initial`, c)`
+   */
+  def replaces(c: Handle[A]): Option[(Handle[A], Handle[A])] =
     initialItems.find(i => i.id == c.id && (i.value != c.value)).map(i => (i, c))
-  }
 
   protected def copy(items: Seq[Handle[A]]): Self
 
