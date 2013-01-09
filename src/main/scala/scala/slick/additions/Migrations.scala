@@ -56,7 +56,7 @@ trait Migrations extends BasicSQLUtilsComponent with BasicStatementBuilderCompon
         case (t, _)          => t
       }
   }
-  def columnSql(column: FieldSymbol) = {
+  def columnSql(column: FieldSymbol, inclPk: Boolean = true) = {
     val opts = new ColumnOptions(column)
     import opts._
     def name = quoteIdentifier(column.name)
@@ -64,7 +64,7 @@ trait Migrations extends BasicSQLUtilsComponent with BasicStatementBuilderCompon
     def options =
       dflt.map(" DEFAULT " + _).getOrElse("") +
       (if(notNull) " NOT NULL" else "") +
-      (if(pk) " PRIMARY KEY" else "")
+      (if(inclPk && pk) " PRIMARY KEY" else "")
     name + " " + typ + options
   }
   trait CreateTableBase[T <: Table[_]] extends ReversibleMigration { outer =>
@@ -89,7 +89,7 @@ trait Migrations extends BasicSQLUtilsComponent with BasicStatementBuilderCompon
     protected val fss = columns flatMap (f => fieldSym(Node(f(table))))
     def sql = s"""create table
       ${ tableName(table) } (
-      ${ fss map columnSql mkString ", " }
+      ${ fss map { columnSql(_, true) } mkString ", " }
     )"""
     def down = DropTable(table)
   }
@@ -147,49 +147,46 @@ trait Migrations extends BasicSQLUtilsComponent with BasicStatementBuilderCompon
     def sql = s"""drop index ${ quoteIdentifier(index.name) }"""
     def down = CreateIndex(index)
   }
-  protected def tableAndFS(column: Column[_]) = Node(column) match {
-    case Select(TableNode(n), f: FieldSymbol) => (quoteIdentifier(n), f)
-  }
-  case class AddColumn(column: Column[_]) extends SqlMigration with ReversibleMigration {
-    private[this] val (table, fs) = tableAndFS(column)
-    def sql = s"""alter table ${ table }
-      add column ${ columnSql(fs) }
+  case class AddColumn[T <: Table[_]](table: T)(column: T => Column[_]) extends SqlMigration with ReversibleMigration {
+    private[this] val Some(fs) = fieldSym(Node(column(table)))
+    def sql = s"""alter table ${ tableName(table) }
+      add column ${ columnSql(fs, false) }
     """
-    def down = DropColumn(column)
+    def down = DropColumn(table)(column)
   }
-  case class DropColumn(column: Column[_]) extends SqlMigration with ReversibleMigration {
-    private[this] val (table, fs) = tableAndFS(column)
-    def sql = s"""alter table ${ table }
+  case class DropColumn[T <: Table[_]](table: T)(column: T => Column[_]) extends SqlMigration with ReversibleMigration {
+    private[this] val Some(fs) = fieldSym(Node(column(table)))
+    def sql = s"""alter table ${ tableName(table) }
       drop column ${ quoteIdentifier(fs.name) }
     """
-    def down = AddColumn(column)
+    def down = AddColumn(table)(column)
   }
   /**
    * Can rename too
    */
-  case class AlterColumnType(column: Column[_]) extends SqlMigration {
-    private[this] val (table, fs) = tableAndFS(column)
+  case class AlterColumnType[T <: Table[_]](table: T)(column: T => Column[_]) extends SqlMigration {
+    private[this] val Some(fs) = fieldSym(Node(column(table)))
     private[this] val options = new ColumnOptions(fs)
     def sql = s"""
-      alter table ${ table }
+      alter table ${ tableName(table) }
       alter column ${ fs.name }
       type ${ options.sqlType }
     """
   }
-  case class AlterColumnDefault(column: Column[_]) extends SqlMigration {
-    private[this] val (table, fs) = tableAndFS(column)
+  case class AlterColumnDefault[T <: Table[_]](table: T)(column: T => Column[_]) extends SqlMigration {
+    private[this] val Some(fs) = fieldSym(Node(column(table)))
     private[this] val options = new ColumnOptions(fs)
     def sql = s"""
-      alter table ${ table}
+      alter table ${ tableName(table) }
       alter column ${ fs.name }
       set default ${ options.dflt getOrElse "null" }
     """
   }
-  case class AlterColumnNullability(column: Column[_]) extends SqlMigration {
-    private[this] val (table, fs) = tableAndFS(column)
+  case class AlterColumnNullability[T <: Table[_]](table: T)(column: T => Column[_]) extends SqlMigration {
+    private[this] val Some(fs) = fieldSym(Node(column(table)))
     private[this] val options = new ColumnOptions(fs)
     def sql = s"""
-      alter table ${ table}
+      alter table ${ tableName(table) }
       alter column ${ fs.name }
       ${ if(options.notNull) "set" else "drop" } not null
     """
