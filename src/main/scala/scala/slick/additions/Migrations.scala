@@ -63,8 +63,8 @@ trait Migrations extends BasicSQLUtilsComponent with BasicStatementBuilderCompon
     def typ = (if(autoInc) "SERIAL" else sqlType)
     def options =
       dflt.map(" DEFAULT " + _).getOrElse("") +
-      (if(notNull) " NOT NULL") +
-      (if(pk) " PRIMARY KEY")
+      (if(notNull) " NOT NULL" else "") +
+      (if(pk) " PRIMARY KEY" else "")
     name + " " + typ + options
   }
   trait CreateTableBase[T <: Table[_]] extends ReversibleMigration { outer =>
