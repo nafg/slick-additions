@@ -6,8 +6,7 @@ import driver._
 import ast._
 import session.Session
 
-class Migrations(val driver: BasicDriver with BasicSQLUtilsComponent with BasicStatementBuilderComponent) {
-  import driver._
+trait Migrations extends BasicSQLUtilsComponent with BasicStatementBuilderComponent { driver: BasicDriver =>
   protected def fieldSym(node: Node): Option[FieldSymbol] = node match {
     case Select(_, f: FieldSymbol) => Some(f)
     case _                         => None
