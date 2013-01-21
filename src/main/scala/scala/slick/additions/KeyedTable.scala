@@ -238,6 +238,15 @@ trait KeyedTableComponent extends BasicDriver {
         )
       )
     }
+    implicit class EntityMapping6[T1, T2, T3, T4, T5, T6](val p: Projection6[T1, T2, T3, T4, T5, T6]) extends EntityMapping[(T1, T2, T3, T4, T5, T6) => A, A => Option[(T1, T2, T3, T4, T5, T6)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6)) }
+        )
+      )
+    }
   }
 
   trait SimpleQL extends super.SimpleQL {
