@@ -40,11 +40,14 @@ trait KeyedTableComponent extends BasicDriver {
   trait CanSetLookup[K, A] {
     def apply[E <: KeyedEntity[K, A]](e: E): E
   }
-  abstract class KeyedTable[K : BaseTypeMapper, A](tableName: String) extends Table[A](tableName) { keyedTable =>
+
+  abstract class KeyedTableBase[K: BaseTypeMapper, A](tableName: String) extends Table[A](tableName) { keyedTable =>
     def keyColumnName = "id"
     def keyColumnOptions = List(O.PrimaryKey, O.NotNull, O.AutoInc)
     def key = column[K](keyColumnName, keyColumnOptions: _*)
+  }
 
+  abstract class KeyedTable[K: BaseTypeMapper, A](tableName: String) extends KeyedTableBase[K, A](tableName) {
     def lookup: Column[Lookup] = column[Lookup](keyColumnName, keyColumnOptions: _*)
 
     case class Lookup(key: K) extends additions.Lookup[Option[A], simple.Session] {
@@ -142,13 +145,16 @@ trait KeyedTableComponent extends BasicDriver {
       MappedTypeMapper.base[Lookup, K](_.key, Lookup(_))
   }
 
-  abstract class EntityTable[K : BaseTypeMapper, A](tableName: String) extends KeyedTable[K, KeyedEntity[K, A]](tableName) {
-    type Key   = K
+  trait EntityTableBase[K, A] { this: Table[KeyedEntity[K, A]] =>
+    type Key = K
     type Value = A
-    type Ent   = Entity[K, A]
-    type KEnt  = KeyedEntity[K, A]
+    type Ent = Entity[K, A]
+    type KEnt = KeyedEntity[K, A]
 
     def Ent(a: A) = new KeylessEntity[K, A](a)
+  }
+
+  abstract class EntityTable[K: BaseTypeMapper, A](tableName: String) extends KeyedTable[K, KeyedEntity[K, A]](tableName) with EntityTableBase[K, A] {
 
     case class Mapping(forInsert: ColumnBase[A], * : ColumnBase[KEnt])
     object Mapping {
