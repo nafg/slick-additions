@@ -43,6 +43,8 @@ abstract class Lookup[A, Param] {
     cached = ret
     ret.get
   }
+
+  override def toString = s"Lookup(${cached map (_.toString) getOrElse "?"})"
 }
 
 object IdGenerator {
@@ -102,7 +104,7 @@ trait DiffSeq[A, +Self <: DiffSeq[A, Self]] { this: Self =>
   def replaces(c: Handle[A]): Option[(Handle[A], Handle[A])] =
     initialItems.find(i => i.id == c.id && (i.value != c.value)).map(i => (i, c))
 
-  protected def copy(items: Seq[Handle[A]]): Self
+  def copy(items: Seq[Handle[A]]): Self
 
   /**
    * Append an item
