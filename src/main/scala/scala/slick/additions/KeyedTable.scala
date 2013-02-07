@@ -52,7 +52,9 @@ trait KeyedTableComponent extends BasicDriver {
   abstract class KeyedTable[K: BaseTypeMapper, A](tableName: String) extends KeyedTableBase[K, A](tableName) {
     def lookup: Column[Lookup] = column[Lookup](keyColumnName, keyColumnOptions: _*)
 
-    case class Lookup(key: K) extends additions.Lookup[Option[A], simple.Session] {
+    case class Lookup(key: K, precache: A = null.asInstanceOf[A]) extends additions.Lookup[Option[A], simple.Session] {
+      cached = Option(precache) map Some.apply
+
       import simple._
       def query: Query[simple.KeyedTable[K, A], A] = {
         Query(KeyedTable.this).filter(_.key is key)
