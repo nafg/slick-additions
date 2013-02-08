@@ -154,6 +154,8 @@ trait SeqLookup[A, Param] extends Lookup[Seq[A], Param] with DiffSeq[A, SeqLooku
 
   override protected def cached_=(x: Option[Seq[A]]) = _cached = x map (_ map { new Handle(_) })
 
+  override def cached = _cached map (_ map (_.value))
+
   def initialItems: Seq[Handle[A]] = _cached getOrElse Seq.empty
 
   override def apply()(implicit param: Param): Seq[A] = {
