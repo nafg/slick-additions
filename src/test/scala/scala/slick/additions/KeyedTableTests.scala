@@ -74,7 +74,7 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
           case loaded :: Nil =>
             println(s"Loaded $loaded")
             saved should equal (loaded)
-            saved.value.phones() should equal (loaded.value.phones())
+            saved.value.phones().toSet should equal (loaded.value.phones().toSet)
             saved
           case x => fail(s"Found $x")
         }
