@@ -95,8 +95,9 @@ trait KeyedTableComponent extends BasicDriver {
       def withLookup(lookup: Lookup): OneToMany[E, B, TB] = if(isCopy) this map setLookup(lookup) else {
         val f = setLookup(lookup)
         new OneToMany[E, B, TB](otherTable, Some(lookup))(column, setLookup) {
-          cached = OneToMany.this.cached
+          cached = OneToMany.this.cached map (_ map f)
           override def currentItems = OneToMany.this.currentItems map (_ map f)
+          override def initialItems = OneToMany.this.initialItems map (_ map f)
         }
       }
 
