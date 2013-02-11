@@ -62,17 +62,16 @@ trait KeyedTableComponent extends BasicDriver {
       def query: Query[KeyedTableLookups[K, A], A] = {
         Query(KeyedTableLookups.this).filter(_.key is key)
       }
-      def fetched(implicit session: Session): Lookup
+      def fetched(implicit session: Session) =
+        query.firstOption map { a => Fetched(key, a) } getOrElse this
       def apply()(implicit session: Session) = fetched.value
     }
     final case class Unfetched(key: Key) extends Lookup {
       def value = None
-      def fetched(implicit session: Session) =
-        query.firstOption map { a => Fetched(key, a) } getOrElse this
     }
     final case class Fetched(key: Key, ent: A) extends Lookup {
       def value = Some(ent)
-      def fetched(implicit session: Session) = this
+      override def apply()(implicit session: Session) = value
     }
 
     def Lookup(key: K): Lookup = Unfetched(key)
@@ -152,7 +151,7 @@ trait KeyedTableComponent extends BasicDriver {
 
       def fetched(implicit session: Session) = copy(query.list, true)
 
-      def apply()(implicit session: simple.Session) = fetched.items
+      def apply()(implicit session: simple.Session) = if(isFetched) items else fetched.items
 
       override def toString = s"${KeyedTable.this.getClass.getSimpleName}.OneToMany($items)"
     }
