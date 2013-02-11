@@ -16,10 +16,11 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
     def mapping = kind ~ number ~ person <-> (Phone.apply _, Phone.unapply _)
   }
 
-  case class Person(first: String, last: String, phones: People.OneToMany[Phones.Ent, Phones.KEnt, Phones.type])
+  case class Person(first: String, last: String, phones: People.OneToMany[Phones.type])
   object People extends EntityTable[Long, Person]("people") {
+    def setPhoneLookup: Lookup => Phone => Phone = lu => _.copy(person = lu)
     def phonesLookup(k: Option[Long] = None, init: Seq[Phones.Ent] = null) =
-      OneToManyEnt(Phones, k map { x => Lookup(x) })(_.person, lu => _.copy(person = lu), init)
+      OneToMany[Phones.type](Phones, k map { x => Lookup(x) })(_.person, setPhoneLookup, init)
 
     override val lookupLenses = List(OneToManyLens(_.phones)(ps => _.copy(phones = ps)))
 
@@ -93,21 +94,22 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
           )
         )
       )
-      val saved = testRoundTrip(person)
+      val saved = withClue("Original Person: ") { testRoundTrip(person) }
 
       // Delete one phone, modify the other, and add another
-      val withAnotherPhone = saved.map(p =>
+      val modifiedPhones = saved.map { p =>
         p.copy(
-          phones = p.phones.copy(
-            p.phones.currentItems.collect {
-              case h if h.value.value.kind == "cell" =>
-                h.map(_.map(_.copy(kind = "mobile")))
-            }
-          ) + Phones.Ent(Phone("work", "5555555555"))
+          phones = p.phones.map(
+            phones =>
+            phones.collect {
+              case e if e.value.kind == "cell" =>
+                e.map(_.copy(kind = "mobile"))
+            } :+ Phones.Ent(Phone("work", "5555555555"))
+          )
         )
-      )
-      println("withAnotherPhone: " + withAnotherPhone)
-      testRoundTrip(withAnotherPhone)
+      }
+      println("modifiedPhones: " + modifiedPhones)
+      withClue("Modified Person: ") { testRoundTrip(modifiedPhones) }
     }
   }
 }
