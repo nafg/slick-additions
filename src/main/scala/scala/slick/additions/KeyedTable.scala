@@ -43,127 +43,145 @@ case class ModifiedEntity[K, +A](key: K, value: A) extends KeyedEntity[K, A] {
 }
 
 trait KeyedTableComponent extends BasicDriver {
-  abstract class KeyedTableBase[K: BaseTypeMapper, A](tableName: String) extends Table[A](tableName) { keyedTable =>
+  trait KeyedTableBase  { keyedTable: Table[_] =>
+    type Key
     def keyColumnName = "id"
     def keyColumnOptions = List(O.PrimaryKey, O.NotNull, O.AutoInc)
-    def key = column[K](keyColumnName, keyColumnOptions: _*)
+    def key = column[Key](keyColumnName, keyColumnOptions: _*)
+    implicit def keyMapper: BaseTypeMapper[Key]
   }
 
-  abstract class KeyedTable[K: BaseTypeMapper, A](tableName: String) extends KeyedTableBase[K, A](tableName) {
+  abstract class KeyedTableLookups[K, A](tableName: String)(implicit val keyMapper: BaseTypeMapper[K]) extends Table[A](tableName) with KeyedTableBase {
+    import simple._
+
+    type Key = K
+
+    sealed trait Lookup {
+      def key: Key
+      def value: Option[A]
+      def query: Query[KeyedTableLookups[K, A], A] = {
+        Query(KeyedTableLookups.this).filter(_.key is key)
+      }
+      def fetched(implicit session: Session) =
+        query.firstOption map { a => Fetched(key, a) } getOrElse this
+      def apply()(implicit session: Session) = fetched.value
+    }
+    final case class Unfetched(key: Key) extends Lookup {
+      def value = None
+    }
+    final case class Fetched(key: Key, ent: A) extends Lookup {
+      def value = Some(ent)
+      override def apply()(implicit session: Session) = value
+    }
+
+    def Lookup(key: K): Lookup = Unfetched(key)
+    def Lookup(key: K, precache: A): Lookup = Fetched(key, precache)
+
     def lookup: Column[Lookup] = column[Lookup](keyColumnName, keyColumnOptions: _*)
-
-    case class Lookup(key: K, precache: A = null.asInstanceOf[A]) extends additions.Lookup[Option[A], simple.Session] {
-      cached = Option(precache) map Some.apply
-
-      import simple._
-      def query: Query[simple.KeyedTable[K, A], A] = {
-        Query(KeyedTable.this).filter(_.key is key)
-      }
-      def compute(implicit session: simple.Session): Option[A] = query.firstOption
-
-      override def toString = s"${KeyedTable.this.getClass.getSimpleName}.Lookup($key)"
-    }
-
-    class OneToMany[E >: B, B, TB <: simple.Table[B]](
-      private[KeyedTable] val otherTable: TB with simple.Table[B],
-      private[KeyedTable] val thisLookup: Option[Lookup]
-    )(
-      private[KeyedTable] val column: TB => Column[Lookup],
-      private[KeyedTable] val setLookup: Lookup => E => E
-    ) extends additions.SeqLookup[E, simple.Session] with DiffSeq[E, OneToMany[E, B, TB]] {
-
-      protected val isCopy = false
-
-      private def thisTable = KeyedTable.this
-
-      // TODO should we compare the elements somehow? Maybe only compare if they're both populated?
-      override def equals(o: Any) = o match {
-        case that: OneToMany[E, B, TB] =>
-            this.thisTable == that.thisTable &&
-            this.otherTable == that.otherTable &&
-            scala.slick.ast.Node(this.column(this.otherTable)) == scala.slick.ast.Node(that.column(that.otherTable))
-        case _ => false
-      }
-
-      def copy(items: Seq[Handle[E]]) = new OneToMany[E, B, TB](otherTable, thisLookup)(column, setLookup) {
-        override val initialItems = OneToMany.this.initialItems
-        override val currentItems = items
-        override def apply()(implicit session: simple.Session) = currentItems map (_.value)
-        override val isCopy = true
-      }
-
-      def withLookup(lookup: Lookup): OneToMany[E, B, TB] = if(isCopy) this map setLookup(lookup) else {
-        val f = setLookup(lookup)
-        new OneToMany[E, B, TB](otherTable, Some(lookup))(column, setLookup) {
-          cached = OneToMany.this.cached map (_ map f)
-          override def currentItems = OneToMany.this.currentItems map (_ map f)
-          override def initialItems = OneToMany.this.initialItems map (_ map f)
-        }
-      }
-
-      import simple._
-
-      def saved[KB, EB, TB2 <: simple.EntityTable[KB, EB]](implicit session: Session, ev: this.type <:< OneToMany[TB2#Ent, TB2#KEnt, TB2]): OneToManyEnt[KB, EB, TB2] = {
-        val self: OneToMany[TB2#Ent, TB2#KEnt, TB2] = ev(this)
-        val toDelete = initialItems filterNot isRemoved map (_.value) collect {
-          case e: KeyedEntity[KB, EB] => e
-        }
-        val items = currentItems map { h =>
-          h.value match {
-            case e: SavedEntity[KB, EB] => e
-            case e: Entity[KB, EB]      => self.otherTable save e
-          }
-        }
-        toDelete foreach self.otherTable.delete
-        new OneToManyEnt[KB, EB, TB2](self.otherTable, thisLookup)(self.column, self.setLookup) {
-          cached = Some(items)
-        }
-      }
-
-      def query: Query[TB, B] =
-        Query(KeyedTable.this)
-          .filter(t => thisLookup map (t.key is _.key) getOrElse ConstColumn(false))
-          .flatMap{ t =>
-            Query(otherTable).filter(column(_) is t.asInstanceOf[KeyedTable.this.type].lookup)
-          }
-
-      def compute(implicit session: Session): Seq[E] = query.list
-
-      override def toString = s"${KeyedTable.this.getClass.getSimpleName}.OneToMany(${cached map (_.toString) getOrElse currentItems})"
-    }
-
-    def OneToMany[B, TB <: simple.Table[B]](
-      otherTable: TB with simple.Table[B], lookup: Option[Lookup]
-    )(
-      column: TB => Column[Lookup], setLookup: Lookup => B => B, initial: Seq[B] = null
-    ) = new OneToMany[B, B, TB](otherTable, lookup)(column, setLookup) {
-      cached = Option(initial)
-    }
-
-    def OneToManyEnt[KB, B, TB <: simple.EntityTable[KB, B]](
-      otherTable: TB with simple.EntityTable[KB, B], lookup: Option[Lookup]
-    )(
-      column: TB => Column[Lookup], setLookup: Lookup => B => B, initial: Seq[TB#Ent] = null
-    ) = new OneToMany[TB#Ent, TB#KEnt, TB](otherTable, lookup)(column, l => _.map(setLookup(l))) {
-      cached = Option(initial)
-    }
-
-    type OneToManyEnt[KB, B, TB <: simple.EntityTable[KB, B]] = OneToMany[TB#Ent, TB#KEnt, TB]
 
     implicit def lookupMapper: BaseTypeMapper[Lookup] =
       MappedTypeMapper.base[Lookup, K](_.key, Lookup(_))
   }
 
-  trait EntityTableBase[K, A] { this: Table[KeyedEntity[K, A]] =>
-    type Key = K
-    type Value = A
-    type Ent = Entity[K, A]
-    type KEnt = KeyedEntity[K, A]
+  abstract class KeyedTable[K: BaseTypeMapper, A](tableName: String) extends KeyedTableLookups[K, A](tableName) {
+    class OneToMany[TB <: EntityTableBase](
+      private[KeyedTable] val otherTable: TB with EntityTable[TB#Key, TB#Value],
+      private[KeyedTable] val thisLookup: Option[Lookup]
+    )(
+      private[KeyedTable] val column: TB => Column[Lookup],
+      private[KeyedTable] val setLookup: Lookup => TB#Value => TB#Value
+    )(
+      val items: Seq[Entity[TB#Key, TB#Value]] = Nil,
+      val isFetched: Boolean = false
+    ) {
+      type BEnt = Entity[TB#Key, TB#Value]
 
-    def Ent(a: A) = new KeylessEntity[K, A](a)
+      def values = items map (_.value)
+
+      private def thisTable = KeyedTable.this
+
+      override def equals(o: Any) = o match {
+        case that: OneToMany[TB] =>
+          this.thisTable == that.thisTable &&
+          this.otherTable == that.otherTable &&
+          scala.slick.ast.Node(this.column(this.otherTable)) == scala.slick.ast.Node(that.column(that.otherTable)) &&
+          this.items.toSet == that.items.toSet
+        case _ => false
+      }
+
+      def copy(items: Seq[BEnt], isFetched: Boolean = isFetched) =
+        new OneToMany[TB](otherTable, thisLookup)(column, setLookup)(items, isFetched)
+
+      def map(f: Seq[BEnt] => Seq[BEnt]) = copy(f(items))
+
+      def withLookup(lookup: Lookup): OneToMany[TB] =
+        new OneToMany[TB](otherTable, Some(lookup))(column, setLookup)(items map { e => e.map(setLookup(lookup)) }, isFetched)
+
+      import simple._
+
+      def saved(implicit session: Session): OneToMany[TB] = {
+        if(isFetched) {
+          val dq = deleteQuery(items.collect { case ke: KeyedEntity[TB#Key, TB#Value] => ke.key })
+          dq.delete
+        }
+        val xs = items map {
+          case e: Entity[TB#Key, TB#Value] =>
+            if(e.isSaved) e
+            else otherTable save e
+        }
+        copy(xs, true)
+      }
+
+      def query: Query[TB with simple.EntityTable[TB#Key, TB#Value], KeyedEntity[TB#Key, TB#Value]] = {
+        def ot = otherTable
+        thisLookup match {
+          case None =>
+            Query(ot) where (_ => ConstColumn(false))
+          case Some(lu) =>
+            Query(ot) where (column(_) is lu)
+        }
+      }
+
+      def deleteQuery(keep: Seq[TB#Key]) =
+        query.filter {
+          case t: TB with simple.EntityTable[TB#Key, TB#Value] =>
+            implicit def tm: BaseTypeMapper[TB#Key] = t.keyMapper
+            !(t.key inSet keep)
+        }
+
+      def fetched(implicit session: Session) = copy(query.list, true)
+
+      def apply()(implicit session: simple.Session) = if(isFetched) items else fetched.items
+
+      override def toString = s"${KeyedTable.this.getClass.getSimpleName}.OneToMany($items)"
+    }
+
+    def OneToMany[TB <: EntityTableBase](
+      otherTable: TB with EntityTable[TB#Key, TB#Value], lookup: Option[Lookup]
+    )(
+      column: TB => Column[Lookup], setLookup: Lookup => TB#Value => TB#Value, initial: Seq[Entity[TB#Key, TB#Value]] = null
+    ): OneToMany[TB] = {
+      val init = Option(initial)
+      new OneToMany[TB](otherTable, lookup)(column, setLookup)(init getOrElse Nil, init.isDefined)
+    }
   }
 
-  abstract class EntityTable[K: BaseTypeMapper, A](tableName: String) extends KeyedTable[K, KeyedEntity[K, A]](tableName) with EntityTableBase[K, A] {
+  trait EntityTableBase extends KeyedTableBase { this: Table[_] =>
+    type Key
+    type Value
+    type Ent = Entity[Key, Value]
+    type KEnt = KeyedEntity[Key, Value]
+
+    def Ent(v: Value): KeylessEntity[Key, Value]
+
+    def save(e: Ent)(implicit session: simple.Session): SavedEntity[Key, Value]
+    def delete(ke: KEnt)(implicit session: simple.Session): Int
+  }
+
+  abstract class EntityTable[K: BaseTypeMapper, A](tableName: String) extends KeyedTable[K, KeyedEntity[K, A]](tableName) with EntityTableBase {
+    type Value = A
+    def Ent(v: Value) = new KeylessEntity[Key, Value](v)
+
     case class Mapping(forInsert: ColumnBase[A], * : ColumnBase[KEnt])
     object Mapping {
       implicit def fromColumn(c: Column[A]) =
@@ -193,13 +211,14 @@ trait KeyedTableComponent extends BasicDriver {
       def setLookupAndSave(key: K, a: A)(implicit session: simple.Session) = apply(a, setLookup(key) andThen saved)
     }
 
-    case class OneToManyLens[KB, B, TB <: simple.EntityTable[KB, B]](get: A => OneToManyEnt[KB, B, TB])(val set: OneToManyEnt[KB, B, TB] => A => A) extends LookupLens[OneToManyEnt[KB, B, TB]] {
-      def apply(a: A, f: OneToManyEnt[KB, B, TB] => OneToManyEnt[KB, B, TB]) = {
+    case class OneToManyLens[TB <: EntityTableBase](get: A => OneToMany[TB])(val set: OneToMany[TB] => A => A) extends LookupLens[OneToMany[TB]] {
+      def apply(a: A, f: OneToMany[TB] => OneToMany[TB]) = {
         set(f(get(a)))(a)
       }
-      val setLookup = { key: K => o2m: OneToManyEnt[KB, B, TB] => o2m withLookup Lookup(key) }
-      def saved(implicit session: simple.Session) = { otm: OneToManyEnt[KB, B, TB] => otm.saved }
+      val setLookup = { key: K => o2m: OneToMany[TB] => o2m withLookup Lookup(key) }
+      def saved(implicit session: simple.Session) = { otm: OneToMany[TB] => otm.saved }
     }
+
 
     def lookupLenses: Seq[LookupLens[_]] = Nil
 
@@ -208,9 +227,9 @@ trait KeyedTableComponent extends BasicDriver {
         clu.setLookupAndSave(key, v)
       }
 
-    def insert(v: A)(implicit session: simple.Session): SavedEntity[K, A] = insert(Ent(v))
+    def insert(v: A)(implicit session: simple.Session): SavedEntity[K, A] = insert(Ent(v): Ent)
 
-    def insert(e: Entity[K, A])(implicit session: simple.Session): SavedEntity[K, A] = {
+    def insert(e: Ent)(implicit session: simple.Session): SavedEntity[K, A] = {
       import simple._
       // Insert it and get the new or old key
       val k2 = e match {
@@ -306,8 +325,6 @@ trait NamingDriver extends KeyedTableComponent {
     def column[C](options: ColumnOption[C]*)(implicit tm: TypeMapper[C]): Column[C] =
       column[C](scala.reflect.NameTransformer.decode(Thread.currentThread.getStackTrace()(2).getMethodName), options: _*)
   }
-  trait SimpleQL extends super.SimpleQL {
-    //override type KeyedTable[A, K] = NamingDriver.this.KeyedTable[A, K]
-  }
+  trait SimpleQL extends super.SimpleQL
   override val simple: SimpleQL = new SimpleQL {}
 }
