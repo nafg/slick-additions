@@ -4,7 +4,7 @@ package additions
 import lifted._
 import driver._
 import scala.reflect.runtime.currentMirror
-import reflect.ClassTag
+
 
 sealed trait Entity[K, +A] {
   def value: A
@@ -256,13 +256,13 @@ trait KeyedTableComponent extends BasicDriver {
       Query(this).filter(_.key is ke.key).delete
     }
 
-    //TODO EntityMapping{6..22}
     trait EntityMapping[Ap, Unap] {
       type _Ap = Ap
       type _Unap = Unap
       def <->(ap: Option[K] => Ap, unap: Unap): Mapping
       def <->(ap: Ap, unap: Unap): Mapping = <->(_ => ap, unap)
     }
+
     implicit class EntityMapping2[T1, T2](val p: Projection2[T1, T2]) extends EntityMapping[(T1, T2) => A, A => Option[(T1, T2)]] {
       def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
         p <> (ap(None), unap),
@@ -272,6 +272,7 @@ trait KeyedTableComponent extends BasicDriver {
         )
       )
     }
+
     implicit class EntityMapping3[T1, T2, T3](val p: Projection3[T1, T2, T3]) extends EntityMapping[(T1, T2, T3) => A, A => Option[(T1, T2, T3)]] {
       def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
         p <> (ap(None), unap),
@@ -281,6 +282,7 @@ trait KeyedTableComponent extends BasicDriver {
         )
       )
     }
+
     implicit class EntityMapping4[T1, T2, T3, T4](val p: Projection4[T1, T2, T3, T4]) extends EntityMapping[(T1, T2, T3, T4) => A, A => Option[(T1, T2, T3, T4)]] {
       def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
         p <> (ap(None), unap),
@@ -290,6 +292,7 @@ trait KeyedTableComponent extends BasicDriver {
         )
       )
     }
+
     implicit class EntityMapping5[T1, T2, T3, T4, T5](val p: Projection5[T1, T2, T3, T4, T5]) extends EntityMapping[(T1, T2, T3, T4, T5) => A, A => Option[(T1, T2, T3, T4, T5)]] {
       def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
         p <> (ap(None), unap),
@@ -299,12 +302,163 @@ trait KeyedTableComponent extends BasicDriver {
         )
       )
     }
+
     implicit class EntityMapping6[T1, T2, T3, T4, T5, T6](val p: Projection6[T1, T2, T3, T4, T5, T6]) extends EntityMapping[(T1, T2, T3, T4, T5, T6) => A, A => Option[(T1, T2, T3, T4, T5, T6)]] {
       def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
         p <> (ap(None), unap),
         (key ~: p).<>[KEnt](
           (t: (K, T1, T2, T3, T4, T5, T6)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7)),
           { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping7[T1, T2, T3, T4, T5, T6, T7](val p: Projection7[T1, T2, T3, T4, T5, T6, T7]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping8[T1, T2, T3, T4, T5, T6, T7, T8](val p: Projection8[T1, T2, T3, T4, T5, T6, T7, T8]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping9[T1, T2, T3, T4, T5, T6, T7, T8, T9](val p: Projection9[T1, T2, T3, T4, T5, T6, T7, T8, T9]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](val p: Projection10[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11](val p: Projection11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12](val p: Projection12[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13](val p: Projection13[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14](val p: Projection14[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15](val p: Projection15[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16](val p: Projection16[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping17[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17](val p: Projection17[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17, t._18)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping18[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18](val p: Projection18[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17, t._18, t._19)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17, t._18)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping19[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19](val p: Projection19[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17, t._18, t._19, t._20)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17, t._18, t._19)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping20[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20](val p: Projection20[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17, t._18, t._19, t._20, t._21)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17, t._18, t._19, t._20)) }
+        )
+      )
+    }
+
+    implicit class EntityMapping21[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21](val p: Projection21[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21]) extends EntityMapping[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21) => A, A => Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21)]] {
+      def <->(ap: Option[K] => _Ap, unap: _Unap) = Mapping(
+        p <> (ap(None), unap),
+        (key ~: p).<>[KEnt](
+          (t: (K, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21)) => SavedEntity(t._1, ap(Some(t._1))(t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17, t._18, t._19, t._20, t._21, t._22)),
+          { ke: KEnt => unap(ke.value) map (t => (ke.key, t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9, t._10, t._11, t._12, t._13, t._14, t._15, t._16, t._17, t._18, t._19, t._20, t._21)) }
         )
       )
     }
