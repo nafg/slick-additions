@@ -6,8 +6,6 @@ name := "slick-additions"
 
 organization := "nafg"
 
-version := "0.1.12"
-
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.0.M6-SNAP5" % "test"
 
 libraryDependencies += "com.h2database" % "h2" % "1.3.170" % "test"
