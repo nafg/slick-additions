@@ -63,19 +63,24 @@ trait KeyedTableComponent extends BasicDriver {
         Query(KeyedTableLookups.this).filter(_.key is key)
       }
       def fetched(implicit session: Session) =
-        query.firstOption map { a => Fetched(key, a) } getOrElse this
+        query.firstOption map { a => Lookup.Fetched(key, a) } getOrElse this
       def apply()(implicit session: Session) = fetched.value
     }
-    final case class Unfetched(key: Key) extends Lookup {
-      def value = None
+    object Lookup {
+      case object NotSet extends Lookup {
+        def key = throw new NoSuchElementException("key of NotSetLookup")
+        def value = None
+      }
+      final case class Unfetched(key: Key) extends Lookup {
+        def value = None
+      }
+      final case class Fetched(key: Key, ent: A) extends Lookup {
+        def value = Some(ent)
+        override def apply()(implicit session: Session) = value
+      }
+      def apply(key: K): Lookup = Unfetched(key)
+      def apply(key: K, precache: A): Lookup = Fetched(key, precache)
     }
-    final case class Fetched(key: Key, ent: A) extends Lookup {
-      def value = Some(ent)
-      override def apply()(implicit session: Session) = value
-    }
-
-    def Lookup(key: K): Lookup = Unfetched(key)
-    def Lookup(key: K, precache: A): Lookup = Fetched(key, precache)
 
     def lookup: Column[Lookup] = column[Lookup](keyColumnName, keyColumnOptions: _*)
 
