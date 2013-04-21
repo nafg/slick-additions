@@ -8,20 +8,17 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
   object driver extends scala.slick.driver.H2Driver with KeyedTableComponent
   import driver.simple._
 
-  case class Phone(kind: String, number: String, person: Option[People.Lookup] = None)
+  case class Phone(kind: String, number: String, person: People.Lookup = People.Lookup.NotSet)
   object Phones extends EntityTable[Long, Phone]("phones") {
     def person = column[People.Lookup]("personid")
     def kind = column[String]("kind")
     def number = column[String]("number")
-    def mapping = kind ~ number ~ person <-> (
-      (k, n, p) => Phone(k, n, Some(p)),
-      ph => ph.person map (p => (ph.kind, ph.number, p))
-    )
+    def mapping = kind ~ number ~ person <-> (Phone.apply _, Phone.unapply _)
   }
 
   case class Person(first: String, last: String, phones: People.OneToMany[Phones.type])
   object People extends EntityTable[Long, Person]("people") {
-    def setPhoneLookup: Lookup => Phone => Phone = lu => _.copy(person = Some(lu))
+    def setPhoneLookup: Lookup => Phone => Phone = lu => _.copy(person = lu)
     def phonesLookup(k: Option[Long] = None, init: Seq[Phones.Ent] = null) =
       OneToMany[Phones.type](Phones, k map { x => Lookup(x) })(_.person, setPhoneLookup, init)
 
