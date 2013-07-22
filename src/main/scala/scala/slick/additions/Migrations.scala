@@ -161,9 +161,6 @@ trait Migrations extends BasicSQLUtilsComponent with BasicStatementBuilderCompon
     """
     def down = AddColumn(table)(column)
   }
-  /**
-   * Can rename too
-   */
   case class AlterColumnType[T <: Table[_]](table: T)(column: T => Column[_]) extends SqlMigration {
     private[this] val Some(fs) = fieldSym(Node(column(table)))
     private[this] val options = new ColumnOptions(fs)

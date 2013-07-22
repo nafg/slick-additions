@@ -197,8 +197,21 @@ trait KeyedTableComponent extends BasicDriver {
             { case ke: KEnt => Some((ke.key, ke.value)) }
           )
         )
-      implicit def fromProjection3[T1,T2,T3](p: Projection3[T1,T2,T3])(implicit ev: A =:= (T1, T2, T3)) =
-        p <-> (_ => Function.untupled(x => x.asInstanceOf[A]), x => Some(x))
+      implicit def fromProjection2[T1,T2](p: Projection2[T1,T2])(
+        implicit ev1: A =:= (T1,T2), ev2: (T1,T2) =:= A
+      ): Mapping = p <-> (_ => Function.untupled(ev2), x => Some(ev1(x)))
+      implicit def fromProjection3[T1,T2,T3](p: Projection3[T1,T2,T3])(
+        implicit ev1: A =:= (T1,T2,T3), ev2: (T1,T2,T3) =:= A
+      ): Mapping = p <-> (_ => Function.untupled(ev2), x => Some(ev1(x)))
+      implicit def fromProjection4[T1,T2,T3,T4](p: Projection4[T1,T2,T3,T4])(
+        implicit ev1: A =:= (T1,T2,T3,T4), ev2: (T1,T2,T3,T4) =:= A
+      ): Mapping = p <-> (_ => Function.untupled(ev2), x => Some(ev1(x)))
+      implicit def fromProjection5[T1,T2,T3,T4,T5](p: Projection5[T1,T2,T3,T4,T5])(
+        implicit ev1: A =:= (T1,T2,T3,T4,T5), ev2: (T1,T2,T3,T4,T5) =:= A
+      ): Mapping = p <-> (_ => Function.untupled(ev2), x => Some(ev1(x)))
+      implicit def fromProjection6[T1,T2,T3,T4,T5,T6](p: Projection6[T1,T2,T3,T4,T5,T6])(
+        implicit ev1: A =:= (T1,T2,T3,T4,T5,T6), ev2: (T1,T2,T3,T4,T5,T6) =:= A
+      ): Mapping = p <-> (_ => (x1,x2,x3,x4,x5,x6) => ev2((x1,x2,x3,x4,x5,x6)), x => Some(ev1(x)))
     }
 
     def mapping: Mapping
