@@ -1,78 +1,84 @@
 package scala.slick
 package additions
 
-import lifted.{ BaseTypeMapper, MappedTypeMapper }
+import scala.reflect.ClassTag
 import jdbc.GetResult
+import scala.slick.profile.RelationalProfile
 
+trait BitMasks { this: RelationalProfile =>
+  import Implicit._
 
-trait Bitmaskable[A] {
-  def bitmasked: A => Bitmasked
-}
+  trait Bitmaskable[A] {
+    def bitmasked: A => Bitmasked
+  }
 
-trait Bitmasked {
-  type Value
+  trait Bitmasked {
+    type Value
 
-  def bitFor: Value => Int
+    implicit def classTag: ClassTag[Value]
 
-  def forBit: Int => Value
+    def bitFor: Value => Int
 
-  def values: Iterable[Value]
+    def forBit: Int => Value
 
-  def longToSet: Long => Set[Value] = bm => values.toSeq.filter(v => 0 != (bm & (1 << bitFor(v)))).toSet
+    def values: Iterable[Value]
 
-  def setToLong: Set[Value] => Long = _.foldLeft(0L){ (bm, v) => bm + (1L << bitFor(v)) }
+    def longToSet: Long => Set[Value] = bm => values.toSeq.filter(v => 0 != (bm & (1 << bitFor(v)))).toSet
 
-  implicit lazy val enumTypeMapper: BaseTypeMapper[Value] =
-    MappedTypeMapper.base[Value, Int](bitFor, forBit)
-  implicit lazy val enumSetTypeMapper: BaseTypeMapper[Set[Value]] =
-   MappedTypeMapper.base[Set[Value], Long](setToLong, longToSet)
+    def setToLong: Set[Value] => Long = _.foldLeft(0L) { (bm, v) => bm + (1L << bitFor(v)) }
 
-  implicit lazy val getResult: GetResult[Value] = GetResult(r => forBit(r.nextInt))
-  implicit lazy val getSetResult: GetResult[Set[Value]] = GetResult(r => longToSet(r.nextLong))
-}
+    implicit val enumTypeMapper = MappedColumnType.base[Value, Int](bitFor, forBit)
 
-object Bitmaskable {
-  implicit def enumeration[E <: Enumeration]: Bitmaskable[E] = new Bitmaskable[E] {
-    def bitmasked = e => new Bitmasked {
-      type Value = E#Value
-      def bitFor = _.id
-      def forBit = e apply _
-      def values = e.values.toSeq
+    implicit lazy val enumSetTypeMapper = MappedColumnType.base[Set[Value], Long](setToLong, longToSet)
+
+    implicit lazy val getResult: GetResult[Value] = GetResult(r => forBit(r.nextInt))
+    implicit lazy val getSetResult: GetResult[Set[Value]] = GetResult(r => longToSet(r.nextLong))
+  }
+
+  object Bitmaskable {
+    implicit def enumeration[E <: Enumeration : ClassTag]: Bitmaskable[E] = new Bitmaskable[E] {
+      def bitmasked = e => new Bitmasked {
+        def classTag = implicitly[ClassTag[E#Value]]
+        type Value = E#Value
+        def bitFor = _.id
+        def forBit = e apply _
+        def values = e.values.toSeq
+      }
+    }
+    implicit def enum[E <: Enum]: Bitmaskable[E] = new Bitmaskable[E] {
+      def bitmasked = e => e
     }
   }
-  implicit def enum[E <: Enum]: Bitmaskable[E] = new Bitmaskable[E] {
-    def bitmasked = e => e
-  }
-}
 
-/**
- * Mix this in to a subclass of `Enumeration`
- * to get an implicit `BaseTypeMapper` and `GetResult`
- * for `V` and `Set[V]`.
- */
-trait BitmaskedEnumeration extends Bitmasked { this: Enumeration =>
-  def bitFor = _.id
-  def forBit = apply(_)
-}
-
-/**
- * An alternative to `Enumeration`, including an implicit `BaseTypeMapper` and `GetResult`
- * for `Value` and `Set[Value]`.
- */
-trait Enum extends Bitmasked {
-  type Value <: ValueBase
-  trait ValueBase { this: Value =>
-    /**
-     * Convenience upcast
-     */
-    val value: Value = this
+  /**
+   * Mix this in to a subclass of `Enumeration`
+   * to get an implicit `BaseTypeMapper` and `GetResult`
+   * for `V` and `Set[V]`.
+   */
+  trait BitmaskedEnumeration extends Bitmasked { this: Enumeration =>
+    def bitFor = _.id
+    def forBit = apply(_)
   }
 
-  def valueBits: Map[Int, Value]
+  /**
+   * An alternative to `Enumeration`
+   */
+  trait Enum extends Bitmasked {
+    type Value <: ValueBase
+    trait ValueBase { this: Value =>
+      /**
+       * Convenience upcast
+       */
+      val value: Value = this
+    }
 
-  def values = valueBits.toSeq.sortBy(_._1).map(_._2)
+    def valueBits: Map[Int, Value]
 
-  def bitFor: Value => Int = v => valueBits find (_._2 == v) map (_._1) getOrElse sys.error(s"No value $v in Enum $this")
+    def values = valueBits.toSeq.sortBy(_._1).map(_._2)
 
-  def forBit = valueBits(_)
+    def bitFor: Value => Int = v => valueBits find (_._2 == v) map (_._1) getOrElse sys.error(s"No value $v in Enum $this")
+
+    def forBit = valueBits(_)
+  }
+
 }
