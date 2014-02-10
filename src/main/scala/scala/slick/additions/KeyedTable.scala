@@ -488,15 +488,3 @@ trait KeyedTableComponent extends BasicDriver {
   }
   override val simple: SimpleQL = new SimpleQL {}
 }
-
-trait NamingDriver extends KeyedTableComponent {
-  abstract class KeyedTable[K, A](tableName: String)(implicit btm: BaseTypeMapper[K]) extends super.KeyedTable[K, A](tableName) {
-    def this()(implicit btm: BaseTypeMapper[K]) =
-     this(currentMirror.classSymbol(Class.forName(Thread.currentThread.getStackTrace()(2).getClassName)).name.decoded)(btm)
-
-    def column[C](options: ColumnOption[C]*)(implicit tm: TypeMapper[C]): Column[C] =
-      column[C](scala.reflect.NameTransformer.decode(Thread.currentThread.getStackTrace()(2).getMethodName), options: _*)
-  }
-  trait SimpleQL extends super.SimpleQL
-  override val simple: SimpleQL = new SimpleQL {}
-}
