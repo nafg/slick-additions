@@ -4,17 +4,21 @@ import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.ShouldMatchers
 
+import scala.slick.lifted.TableQuery
+
 class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
   object driver extends scala.slick.driver.H2Driver with KeyedTableComponent
   import driver.simple._
 
   case class Phone(kind: String, number: String, person: People.Lookup = People.Lookup.NotSet)
-  object Phones extends EntityTable[Long, Phone]("phones") {
+  class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones") {
+    def tableQuery = Phones
     def person = column[People.Lookup]("personid")
     def kind = column[String]("kind")
     def number = column[String]("number")
-    def mapping = kind ~ number ~ person <-> (Phone.apply _, Phone.unapply _)
+    def mapping = (kind, number, person) <-> (Phone.apply _, Phone.unapply _)
   }
+  val Phones = TableQuery[Phones]
 
   case class Person(first: String, last: String, phones: People.OneToMany[Phones.type])
   object People extends EntityTable[Long, Person]("people") {
