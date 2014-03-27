@@ -14,16 +14,7 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
     def person = column[People.Lookup]("personid")
     def kind = column[String]("kind")
     def number = column[String]("number")
-    // implicit val shape = scala.slick.lifted.Shape.columnShape[People.Lookup, scala.slick.lifted.ShapeLevel.Flat]
     def mapping = (kind, number, person) <-> (_ => Phone.tupled, Phone.unapply _)
-    // val x = person.shaped
-    /*def mapping = Mapping(
-      ins,
-      (key, (kind, number, person)).shaped.<>[KEnt] (
-        { case (i, (k,n,p)) => SavedEntity(i, Phone(k,n,p)) },
-        { case KeyedEntity(i, Phone(k,n,p)) => Some((i, (k,n,p))) }
-      )
-    )*/
   }
   object Phones extends EntTableQuery[Long, Phone, Phones](new Phones(_))
 

@@ -12,90 +12,6 @@ import scala.slick.ast.{ Node, Path, Symbol, TypeMapping }
 import scala.slick.driver.JdbcDriver
 
 trait KeyedTableComponent extends JdbcDriver {
-
-  final class EntityShape[L <: ShapeLevel, M <: KeyedEntity[_, _], U <: KeyedEntity[_, _], P <: KeyedEntity[_, _]](val shapes: Seq[Shape[_, _, _, _]])
-  extends MappedProductShape[L, KeyedEntity[_, _], M, U, P] {
-    def buildValue(elems: IndexedSeq[Any]): Any = SavedEntity(elems(0), elems(1))
-    def getElement(entity: KeyedEntity[_, _], idx: Int): Any = idx match {
-      case 0 => entity.key
-      case 1 => entity.value
-    }
-    def copy(newShapes: Seq[Shape[_, _, _, _]]): Shape[L, _, _, _] = new EntityShape(newShapes)
-  }
-
-  implicit def entityShape[L <: ShapeLevel, MK, MV, UK, UV, PK, PV](implicit sK: Shape[_ <: L, MK, UK, PK], sV: Shape[_ <: L, MV, UV, PV]) =
-    new EntityShape[L, KeyedEntity[MK, MV], KeyedEntity[UK, UV], KeyedEntity[PK, PV]](Seq(sK, sV))
-
-  class Lookups[K, A, T <: KeyedTableLookups[K, A]](query0: Query[T with KeyedTableLookups[K, A], A])(implicit keyMapper: BaseColumnType[K]) {
-    import simple.{ BaseColumnType => _, MappedColumnType => _, _ }
-    sealed trait Lookup {
-      def key: K
-      def value: Option[A]
-      def query: Query[T, A] = query0.filter(_.key is key)
-
-      def fetched(implicit session: Session) =
-        query.firstOption map { a => Fetched(key, a) } getOrElse this
-      def apply()(implicit session: Session) = fetched.value
-    }
-    case object NotSet extends Lookup {
-      def key = throw new NoSuchElementException("key of NotSetLookup")
-      def value = None
-    }
-    final case class Unfetched(key: K) extends Lookup {
-      def value = None
-    }
-    final case class Fetched(key: K, ent: A) extends Lookup {
-      def value = Some(ent)
-      override def apply()(implicit session: Session) = value
-    }
-    object Lookup {
-      def apply(key: K): Lookup = Unfetched(key)
-      def apply(key: K, precache: A): Lookup = Fetched(key, precache)
-      implicit def lookupMapper: BaseColumnType[Lookup] =
-        MappedColumnType.base[Lookup, K](_.key, Lookup(_))
-    }
-    val lookup: T => Column[Lookup] = t => t.column[Lookup](t.keyColumnName, t.keyColumnOptions: _*)
-  }
-  
-  class TestTable(tag: Tag) extends Table[KeyedEntity[Int, Option[String]]](tag, "name") {
-    import simple._
-    def id = column[Int]("id")
-    def str = column[String]("str")
-    def cols: MappedProjection[Option[String], String] = str.<>(s => Option(s), identity)
-    // def * = (id, cols).<>[Entity[Int, Option[String]], (Int, Option[String])](
-      // { case (k: Int, os: Option[String]) => SavedEntity(k,os) },
-      // { case KeyedEntity(k, v) => Some((k, v)) case _ => None })
-
-    // def all: KeyedEntity[ColumnBase[Int], ColumnBase[Option[String]]] = SavedEntity(id, cols)
-    // def forInsert: ColumnBase[Option[String]] = all.value
-    // def * = all
-    type A = Option[String]
-    type KEnt = KeyedEntity[Int, A]
-    def key = id
-    case class Mapping(forInsert: ProvenShape[A], all: ProvenShape[KEnt])
-    object Mapping {
-      implicit def mapping[T](c: T)(implicit shape: Shape[_ <: ShapeLevel.Flat, T, A, _]): Mapping =
-        Mapping(
-          c,
-          new ToShapedValue((key, c)).shaped.<>[KEnt](
-            { case (k, a) => SavedEntity(k, a) },
-            { case ke: KEnt => Some((ke.key, ke.value)) }
-          )
-        )
-    }
-
-    def forInsert: ProvenShape[A] = cols
-
-    def * = (key, forInsert) <> (
-      { t: (Int, A) => SavedEntity(t._1, t._2): KeyedEntity[Int, A] },
-      {ke: KeyedEntity[Int, A] => Some((ke.key, ke.value)) }
-    )
-    // val mapping: Mapping = Mapping.mapping(cols)
-    // def forInsert = mapping.forInsert
-    // val * = mapping.all
-
-  }
-
   trait KeyedTableBase  { keyedTable: Table[_] =>
     type Key
     def keyColumnName = "id"
@@ -144,8 +60,7 @@ trait KeyedTableComponent extends JdbcDriver {
       MappedColumnType.base[Lookup, K](_.key, Lookup(_))
   }
 
-  abstract class KeyedTable[K : BaseColumnType, A](tag: Tag, tableName: String) extends KeyedTableLookups[K, A](tag, tableName) {
-  }
+  abstract class KeyedTable[K : BaseColumnType, A](tag: Tag, tableName: String) extends KeyedTableLookups[K, A](tag, tableName)
 
   trait EntityTableBase extends KeyedTableBase { this: Table[_] =>
     type Key
@@ -153,8 +68,6 @@ trait KeyedTableComponent extends JdbcDriver {
     type Ent = Entity[Key, Value]
     type KEnt = KeyedEntity[Key, Value]
   }
-
-
 
   abstract class EntityTable[K : BaseColumnType, V](tag: Tag, tableName: String) extends KeyedTable[K, KeyedEntity[K, V]](tag, tableName) with EntityTableBase {
     type Value = V
@@ -195,55 +108,12 @@ trait KeyedTableComponent extends JdbcDriver {
         new MappedProj[V, P, P](value, _ => identity[P], identity[P])(shape)
     }
 
-    // val es: Shape[ShapeLevel.Flat, KeyedEntity[Column[K], ColumnBase[V]], KeyedEntity[K, V], KeyedEntity[Column[K], ColumnBase[V]]] = entityShape[ShapeLevel.Flat, Column[K], ColumnBase[V], K, V, Column[K], ColumnBase[V]](
-    //       Shape.primitiveShape[K, ShapeLevel.Flat].packedShape,
-    //       Shape.columnBaseShape[ShapeLevel.Flat, V, ColumnBase[V]]
-    //     )
-
-    // def * = (key, forInsert).shaped <> ((t: (K, V)) => SavedEntity(t._1, t._2): KeyedEntity[K, V], KeyedEntity.unapply[K, V])
-
-    // def forInsert: ColumnBase[V]
-
-    // val x: ColumnBase[_] = (key, key)
-
-    // implicit def vShape: Shape[_, _, _, V] = ???
-
-    /*case class Mapping(forInsert: ProvenShape[V], all: ProvenShape[KEnt])
-    object Mapping {
-      implicit def mapping[I, P](c: I)(implicit shape: Shape[_ <: ShapeLevel.Flat, I, V, P]): Mapping =
-        Mapping(
-          c,
-          new ToShapedValue((key, c)).shaped.<>[KEnt](
-            { case (k, a) => SavedEntity(k.a) },
-            { case ke: KEnt => Some((ke.key, ke.value)) }
-          )
-        )
-    }
-
-    def mapping: Mapping*/
-    // def forInsert: ShapedValue[_, V] // = mapping.forInsert
-    // def * : ProvenShape[KEnt] = mapping.all
-
-    // implicit val fiShape = forInsert.shape
-
-    // def colsShaped = (key, forInsert.value).shaped
-// 
-    // implicit def kShape: 
-
-    // def whatever: MappedProj[_, _, (K, K)] = (key, key) <->((x: (K, K)) => 10, (y: Int) => Some(???))
-
     def mapping: MappedProj[_, _, V]
 
     private def all: MappedProjection[KeyedEntity[K, V], _ <: (K, _)] =
       key ~: mapping
 
     def * = all
-
-    // def * =  ??? /*colsShaped <> (
-      // { t: (K, V) => SavedEntity(t._1, t._2): KeyedEntity[K, V] },
-      // {ke: KeyedEntity[K, V] => Some((ke.key, ke.value)) }
-    // )*/
-
   }
 
   class KeyedTableQuery[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => T) extends TableQuery[T](cons) {
@@ -366,9 +236,6 @@ trait KeyedTableComponent extends JdbcDriver {
     type KEnt = KeyedEntity[Key, Value]
     def Ent(v: V): Ent = new KeylessEntity[Key, Value](v)
 
-
-
-
     trait LookupLens[L] {
       /**
        * Get the field on an entity value that
@@ -457,7 +324,6 @@ trait KeyedTableComponent extends JdbcDriver {
     type Ent[T <: EntityTableBase] = Entity[T#Key, T#Value]
     type KEnt[T <: EntityTableBase] = KeyedEntity[T#Key, T#Value]
     def Ent[T <: EntityTableBase](value: T#Value) = new KeylessEntity[T#Key, T#Value](value)
-    type Lookups[K, A, T <: KeyedTableLookups[K, A]] = KeyedTableComponent.this.Lookups[K, A, T]
     type KeyedTableQuery[K, A, T <: KeyedTable[K, A]] = KeyedTableComponent.this.KeyedTableQuery[K, A, T]
     type EntTableQuery[K, V, T <: EntityTable[K, V]] = KeyedTableComponent.this.EntTableQuery[K, V, T]
   }
