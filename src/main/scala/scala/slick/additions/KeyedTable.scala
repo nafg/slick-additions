@@ -88,7 +88,7 @@ trait KeyedTableComponent extends JdbcDriver {
 
     class MappedProj[Src, Unpacked, MappedAs](val source: Src, val construct: (K => Unpacked => MappedAs), val extract: (MappedAs => Unpacked))(implicit val shape: Shape[_ <: ShapeLevel.Flat, Src, Unpacked, _]) extends ColumnBase[MappedAs] {
 
-      override def toNode: Node = TypeMapping(shape.toNode(source), (v => extract(v.asInstanceOf[MappedAs])), (v => construct(???)(v.asInstanceOf[Unpacked])))
+      override def toNode: Node = TypeMapping(shape.toNode(source), (v => extract(v.asInstanceOf[MappedAs])), (v => construct(sys.error("EntityTable#MappedProj: Can't construct the mapped type without a key value."))(v.asInstanceOf[Unpacked])))
 
       def encodeRef(path: List[Symbol]): MappedProj[Src, Unpacked, MappedAs] = new MappedProj[Src, Unpacked, MappedAs](source, construct, extract)(shape) {
         override def toNode = Path(path)
