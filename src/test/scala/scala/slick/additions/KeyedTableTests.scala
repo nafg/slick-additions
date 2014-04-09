@@ -26,7 +26,10 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
     def last = column[String]("last")
 
     def mapping = (first, last) <-> (
-      k => (t: (String, String)) => Person(t._1, t._2, People.phonesLookup(Some(k))),
+      k => (t: (String, String)) => {
+        println("In mapping, k = " + k)
+        Person(t._1, t._2, People.phonesLookup(k))
+      },
       (p: Person) => Person.unapply(p) map (t => (t._1, t._2))
     )
   }

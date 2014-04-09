@@ -78,17 +78,17 @@ trait KeyedTableComponent extends JdbcDriver {
     def tableQuery: Query[EntityTable[K, V], KEnt]
 
     implicit class MapProj[Value](value: Value) {
-      def <->[R, Unpacked](construct: K => Unpacked => R, extract: R => Option[Unpacked])(implicit shape: Shape[_ <: ShapeLevel.Flat, Value, Unpacked, _]): MappedProj[Value, Unpacked, R] =
+      def <->[R, Unpacked](construct: Option[K] => Unpacked => R, extract: R => Option[Unpacked])(implicit shape: Shape[_ <: ShapeLevel.Flat, Value, Unpacked, _]): MappedProj[Value, Unpacked, R] =
         new MappedProj[Value, Unpacked, R](value, construct, extract(_).get)(shape)
     }
     implicit class MapProjShapedValue[T, U](v: ShapedValue[T, U]) {
-      def <->[R](construct: K => U => R, extract: R => Option[U]): MappedProj[T, U, R] =
+      def <->[R](construct: Option[K] => U => R, extract: R => Option[U]): MappedProj[T, U, R] =
         new MappedProj[T, U, R](v.value, construct, extract(_).get)(v.shape)
     }
 
-    class MappedProj[Src, Unpacked, MappedAs](val source: Src, val construct: (K => Unpacked => MappedAs), val extract: (MappedAs => Unpacked))(implicit val shape: Shape[_ <: ShapeLevel.Flat, Src, Unpacked, _]) extends ColumnBase[MappedAs] {
+    class MappedProj[Src, Unpacked, MappedAs](val source: Src, val construct: (Option[K] => Unpacked => MappedAs), val extract: (MappedAs => Unpacked))(implicit val shape: Shape[_ <: ShapeLevel.Flat, Src, Unpacked, _]) extends ColumnBase[MappedAs] {
 
-      override def toNode: Node = TypeMapping(shape.toNode(source), (v => extract(v.asInstanceOf[MappedAs])), (v => construct(sys.error("EntityTable#MappedProj: Can't construct the mapped type without a key value."))(v.asInstanceOf[Unpacked])))
+      override def toNode: Node = TypeMapping(shape.toNode(source), (v => extract(v.asInstanceOf[MappedAs])), (v => construct(None)(v.asInstanceOf[Unpacked])))
 
       def encodeRef(path: List[Symbol]): MappedProj[Src, Unpacked, MappedAs] = new MappedProj[Src, Unpacked, MappedAs](source, construct, extract)(shape) {
         override def toNode = Path(path)
@@ -98,7 +98,7 @@ trait KeyedTableComponent extends JdbcDriver {
         val ksv = new ToShapedValue(kc).shaped
         val ssv: ShapedValue[Src, Unpacked] = new ToShapedValue(source).shaped
         (ksv zip ssv).<>[KeyedEntity[K, MappedAs]](
-          { case (k, v) => SavedEntity(k, construct(k)(v)): KeyedEntity[K, MappedAs] },
+          { case (k, v) => SavedEntity(k, construct(Some(k))(v)): KeyedEntity[K, MappedAs] },
           ke => Some((ke.key, extract(ke.value))))
       }
     }
