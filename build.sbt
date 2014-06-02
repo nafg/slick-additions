@@ -1,6 +1,6 @@
-scalaVersion := "2.10.0"
+scalaVersion := "2.10.3"
 
-libraryDependencies += "com.typesafe.slick" %% "slick" % "1.0.0"
+libraryDependencies += "com.typesafe.slick" %% "slick" % "2.0.2"
 
 name := "slick-additions"
 

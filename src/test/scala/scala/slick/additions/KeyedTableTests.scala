@@ -9,40 +9,50 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
   import driver.simple._
 
   case class Phone(kind: String, number: String, person: People.Lookup = People.Lookup.NotSet)
-  object Phones extends EntityTable[Long, Phone]("phones") {
+  class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones") {
+    def tableQuery = Phones
     def person = column[People.Lookup]("personid")
     def kind = column[String]("kind")
     def number = column[String]("number")
-    def mapping = kind ~ number ~ person <-> (Phone.apply _, Phone.unapply _)
+    def mapping = (kind, number, person) <-> (_ => Phone.tupled, Phone.unapply _)
   }
+  object Phones extends EntTableQuery[Long, Phone, Phones](new Phones(_))
 
-  case class Person(first: String, last: String, phones: People.OneToMany[Phones.type])
-  object People extends EntityTable[Long, Person]("people") {
-    def setPhoneLookup: Lookup => Phone => Phone = lu => _.copy(person = lu)
-    def phonesLookup(k: Option[Long] = None, init: Seq[Phones.Ent] = null) =
-      OneToMany[Phones.type](Phones, k map { x => Lookup(x) })(_.person, setPhoneLookup, init)
-
-    override val lookupLenses = List(OneToManyLens(_.phones)(ps => _.copy(phones = ps)))
+  case class Person(first: String, last: String, phones: People.OneToMany[Long, Phone, Phones])
+  class People(tag: Tag) extends EntityTable[Long, Person](tag, "people") {
+    def tableQuery = People
 
     def first = column[String]("first")
     def last = column[String]("last")
 
-    def mapping = first ~ last <-> (
-      k => Person(_, _, phonesLookup(k)),
-      Person.unapply(_) map (t => (t._1, t._2))
+    def mapping = (first, last) <-> (
+      k => (t: (String, String)) => {
+        println("In mapping, k = " + k)
+        Person(t._1, t._2, People.phonesLookup(k))
+      },
+      (p: Person) => Person.unapply(p) map (t => (t._1, t._2))
     )
+  }
 
-    def find(f: Query[(People.type, Phones.type), (People.KEnt, Phones.KEnt)] => Query[(People.type, Phones.type), (People.KEnt, Phones.KEnt)])(implicit session: Session) = {
-      val q = f(Query(People) leftJoin Query(Phones) on (_.lookup is _.person))
-      val list: List[(People.KEnt, Phones.KEnt)] = q.list
-      val grouped = list.foldLeft(List.empty[(People.KEnt, List[Phones.KEnt])]){ case (xs, (person, phone)) =>
-        val (matched, others) = xs partition (_._1.key == person.key)
-        matched match {
-          case Nil =>
-            (person, phone :: Nil) :: others
-          case y :: ys =>
-            (y._1, phone :: y._2) :: ys ::: others
-        }
+  object People extends EntTableQuery[Long, Person, People](new People(_)) {
+    def setPhoneLookup: People.Lookup => Phone => Phone = lu => _.copy(person = lu)
+    def phonesLookup(k: Option[Long] = None, init: Seq[Phones#Ent] = null) =
+      People.OneToMany(Phones, k map { x => People.Lookup(x) })(_.person, setPhoneLookup, init)
+
+    override val lookupLenses = List(OneToManyLens[Long, Phone, Phones](_.phones)(ps => _.copy(phones = ps)))
+
+    def findPeople(f: Query[(People, Phones), (People#KEnt, Phones#KEnt)] => Query[(People, Phones), (People#KEnt, Phones#KEnt)])(implicit session: Session) = {
+      val q = f(People leftJoin Phones on (People.lookup(_) is _.person))
+      val list: List[(People#KEnt, Phones#KEnt)] = q.list
+      val grouped = list.foldLeft(List.empty[(People#KEnt, List[Phones#KEnt])]) {
+        case (xs, (person, phone)) =>
+          val (matched, others) = xs partition (_._1.key == person.key)
+          matched match {
+            case Nil =>
+              (person, phone :: Nil) :: others
+            case y :: ys =>
+              (y._1, phone :: y._2) :: ys ::: others
+          }
       }
       grouped.collect {
         case (personEnt: SavedEntity[Long, Person], phones) =>
@@ -69,27 +79,27 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
 
   test("OneToMany") {
     db.withSession { implicit session: Session =>
-      def testRoundTrip(in: People.Ent) = {
+      def testRoundTrip(in: Ent[People]) = {
         val saved = People save in
-        People.find(_ where (_._1.key is saved.key)) match {
+        People.findPeople(_ where (_._1.key is saved.key)) match {
           case loaded :: Nil =>
             println(s"Loaded $loaded")
             saved should equal (loaded)
-            saved.value.phones().toSet should equal (loaded.value.phones().toSet)
+            saved.value.phones.items.toSet should equal (loaded.value.phones.items.toSet)
             saved
           case x => fail(s"Found $x")
         }
       }
 
-      val person = People.Ent(
+      val person = driver.simple.Ent[People](
         Person(
           "First",
           "Last",
           People.phonesLookup(
             None,
             List(
-              Phones.Ent(Phone("home", "1234567890")),
-              Phones.Ent(Phone("cell", "0987654321"))
+              Ent[Phones](Phone("home", "1234567890")),
+              Ent[Phones](Phone("cell", "0987654321"))
             )
           )
         )
@@ -104,7 +114,7 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
             phones.collect {
               case e if e.value.kind == "cell" =>
                 e.map(_.copy(kind = "mobile"))
-            } :+ Phones.Ent(Phone("work", "5555555555"))
+            } :+ Ent[Phones](Phone("work", "5555555555"))
           )
         )
       }
