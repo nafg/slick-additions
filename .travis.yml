@@ -2,4 +2,4 @@ language: scala
 script: sbt test publish
 env:
   global:
-  - secure: awN0klzo5KO37k53X8RKsltU5Y4VhmedbNFu493hDow34ilwRYFc9mpND0R+iuseFHlpoLIftLTqg53aJ1PWTcdqgQ1DRnNBUFwSad4ObxtQ0QadB4nu/60bthnuItS5o5U4Fa4MQPHHuIwYmVZmGNBjSAJs2qa0NmkJmtSVD6s=
+    secure: APrQBWcOM2kkihTSSPIEiPEAIiM1Gi1HLNK6Sz/cBtRttXVnMUr7CHU9hbPKtJP94iYmc3gZKY5YjZVG7oKh1B3hUx7booHMPS0fyaC0bxUwRLSWIrav+c2cTzwYvoKz4smS81njrq+i4F/g/+05jqsiwSu7bpjiueiXjROXLZk=
