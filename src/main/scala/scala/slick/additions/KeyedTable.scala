@@ -68,8 +68,8 @@ trait KeyedTableComponent extends JdbcDriver {
     }
 
     object MappedProj {
-      implicit def identityProj[V, P](value: V)(implicit shape: Shape[_ <: ShapeLevel.Flat, V, P, _]): MappedProj[V, P, P] =
-        new MappedProj[V, P, P](value, _ => identity[P], identity[P])(shape)
+      implicit class IdentityProj[V, P](value: V)(implicit shape: Shape[_ <: ShapeLevel.Flat, V, P, _])
+        extends MappedProj[V, P, P](value, _ => identity[P], identity[P])(shape)
     }
 
     def mapping: MappedProj[_, _, V]
