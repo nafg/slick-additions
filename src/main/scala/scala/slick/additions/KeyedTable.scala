@@ -161,7 +161,7 @@ trait KeyedTableComponent extends JdbcDriver {
       }
 
       def query: Query[T2, KeyedEntity[K2, V2]] = {
-        def ot = otherTable.asInstanceOf[Query[T2, KeyedEntity[K2, V2]]]
+        def ot = otherTable
         thisLookup match {
           case None =>
             ot where (_ => LiteralColumn(false))
