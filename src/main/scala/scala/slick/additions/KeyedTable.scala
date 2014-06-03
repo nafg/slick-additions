@@ -21,49 +21,13 @@ trait KeyedTableComponent extends JdbcDriver {
     def tableQuery: Query[KeyedTableBase, _]
   }
 
-  abstract class KeyedTableLookups[K, A](tag: Tag, tableName: String)(implicit val keyMapper: BaseColumnType[K]) extends Table[A](tag, tableName) with KeyedTableBase {
-    import simple.{ BaseColumnType => _, MappedColumnType => _, _ }
-
+  abstract class KeyedTable[K, A](tag: Tag, tableName: String)(implicit val keyMapper: BaseColumnType[K]) extends Table[A](tag, tableName) with KeyedTableBase {
     type Key = K
-    
-    def tableQuery: Query[KeyedTableLookups[K, A], A]
 
-    sealed trait Lookup {
-      def key: Key
-      def value: Option[A]
-      def query: Query[KeyedTableLookups[K, A], A] =
-        tableQuery.filter(_.key is key)
-
-      def fetched(implicit session: Session) =
-        query.firstOption map { a => Lookup.Fetched(key, a) } getOrElse this
-      def apply()(implicit session: Session) = fetched.value
-    }
-    object Lookup {
-      case object NotSet extends Lookup {
-        def key = throw new NoSuchElementException("key of NotSetLookup")
-        def value = None
-      }
-      final case class Unfetched(key: Key) extends Lookup {
-        def value = None
-      }
-      final case class Fetched(key: Key, ent: A) extends Lookup {
-        def value = Some(ent)
-        override def apply()(implicit session: Session) = value
-      }
-      def apply(key: K): Lookup = Unfetched(key)
-      def apply(key: K, precache: A): Lookup = Fetched(key, precache)
-    }
-
-    def lookup: Column[Lookup] = column[Lookup](keyColumnName, keyColumnOptions: _*)
-
-    implicit def lookupMapper: BaseColumnType[Lookup] =
-      MappedColumnType.base[Lookup, K](_.key, Lookup(_))
+    def tableQuery: Query[KeyedTable[K, A], A]
   }
 
-  abstract class KeyedTable[K : BaseColumnType, A](tag: Tag, tableName: String) extends KeyedTableLookups[K, A](tag, tableName)
-
   trait EntityTableBase extends KeyedTableBase { this: Table[_] =>
-    type Key
     type Value
     type Ent = Entity[Key, Value]
     type KEnt = KeyedEntity[Key, Value]
