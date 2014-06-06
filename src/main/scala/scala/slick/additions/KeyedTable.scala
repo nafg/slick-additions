@@ -96,6 +96,7 @@ trait KeyedTableComponent extends JdbcDriver {
       case object NotSet extends Lookup {
         def key = throw new NoSuchElementException("key of NotSetLookup")
         def value = None
+        override def query = KeyedTableQuery.this.filter(_ => false)
       }
       final case class Unfetched(key: Key) extends Lookup {
         def value = None
@@ -109,8 +110,7 @@ trait KeyedTableComponent extends JdbcDriver {
       implicit def lookupMapper: BaseColumnType[Lookup] = MappedColumnType.base[Lookup, K](_.key, Lookup(_))
     }
 
-    val lookup: T => Column[Lookup] = t => t.column[Lookup](t.keyColumnName, t.keyColumnOptions: _*)
-
+    val lookup: T => Column[Lookup] = t => t.key.asColumnOf[Lookup]
 
     class OneToMany[K2, V2, T2 <: simple.EntityTable[K2, V2]](
       private[KeyedTableQuery] val otherTable: simple.EntTableQuery[K2, V2, T2],
