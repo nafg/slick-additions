@@ -122,4 +122,12 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
       withClue("Modified Person: ") { testRoundTrip(modifiedPhones) }
     }
   }
+
+  test("Using lookup in a query") {
+    db.withSession { implicit session: Session =>
+      val id = People.map(_.mapping) returning People.map(_.key) insert Person("first1", "last1", People.phonesLookup())
+      Phones.map(_.mapping) insert Phone("M", "111", People.Lookup(id))
+      People.filter(People.lookup(_) in Phones.map(_.person)).list
+    }
+  }
 }
