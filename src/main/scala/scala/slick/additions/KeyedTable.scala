@@ -96,6 +96,7 @@ trait KeyedTableComponent extends JdbcDriver {
       case object NotSet extends Lookup {
         def key = throw new NoSuchElementException("key of NotSetLookup")
         def value = None
+        override def query = KeyedTableQuery.this.filter(_ => false)
       }
       final case class Unfetched(key: Key) extends Lookup {
         def value = None

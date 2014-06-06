@@ -130,4 +130,12 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
       People.filter(People.lookup(_) in Phones.map(_.person)).list
     }
   }
+
+  test("Lookup.NotSet.fetched does not throw an exception") {
+    db.withSession { implicit session: Session =>
+      val phone = Phone("M", "222")
+      phone.person() shouldBe None
+      phone.person.fetched shouldBe People.Lookup.NotSet
+    }
+  }
 }
