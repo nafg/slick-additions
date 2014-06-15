@@ -12,6 +12,37 @@ import scala.slick.ast.{ Node, Path, Symbol, TypeMapping }
 import scala.slick.driver.JdbcDriver
 
 trait KeyedTableComponent extends JdbcDriver {
+  trait Lookups[K, A] {
+    import simple.{ BaseColumnType => _, MappedColumnType => _, _ }
+    type TableType
+    def lookupQuery(lookup: Lookup): Query[TableType, A]
+    sealed abstract class Lookup {
+      def key: K
+      def value: Option[A]
+      def query: Query[TableType, A] = lookupQuery(this)
+
+      def fetched(implicit session: Session) =
+        query.firstOption map { a => Lookup.Fetched(key, a) } getOrElse this
+      def apply()(implicit session: Session) = fetched.value
+    }
+    object Lookup {
+      case object NotSet extends Lookup {
+        def key = throw new NoSuchElementException("key of NotSetLookup")
+        def value = None
+      }
+      final case class Unfetched(key: K) extends Lookup {
+        def value = None
+      }
+      final case class Fetched(key: K, ent: A) extends Lookup {
+        def value = Some(ent)
+        override def apply()(implicit session: Session) = value
+      }
+      def apply(key: K): Lookup = Unfetched(key)
+      def apply(key: K, precache: A): Lookup = Fetched(key, precache)
+      implicit def lookupMapper(implicit bctk: BaseColumnType[K]): BaseColumnType[Lookup] = MappedColumnType.base[Lookup, K](_.key, Lookup(_))
+    }
+  }
+
   trait KeyedTableBase  { keyedTable: Table[_] =>
     type Key
     def keyColumnName = "id"
@@ -80,34 +111,14 @@ trait KeyedTableComponent extends JdbcDriver {
     def * = all
   }
 
-  class KeyedTableQuery[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => T) extends TableQuery[T](cons) {
+  class KeyedTableQuery[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => T) extends TableQuery[T](cons) with Lookups[K, A] {
     import simple.{ BaseColumnType => _, MappedColumnType => _, _ }
     type Key = K
-    sealed trait Lookup {
-      def key: Key
-      def value: Option[A]
-      def query: Query[T, A] = KeyedTableQuery.this.filter(_.key is key)
+    type TableType = T
 
-      def fetched(implicit session: Session) =
-        query.firstOption map { a => Lookup.Fetched(key, a) } getOrElse this
-      def apply()(implicit session: Session) = fetched.value
-    }
-    object Lookup {
-      case object NotSet extends Lookup {
-        def key = throw new NoSuchElementException("key of NotSetLookup")
-        def value = None
-        override def query = KeyedTableQuery.this.filter(_ => false)
-      }
-      final case class Unfetched(key: Key) extends Lookup {
-        def value = None
-      }
-      final case class Fetched(key: Key, ent: A) extends Lookup {
-        def value = Some(ent)
-        override def apply()(implicit session: Session) = value
-      }
-      def apply(key: K): Lookup = Unfetched(key)
-      def apply(key: K, precache: A): Lookup = Fetched(key, precache)
-      implicit def lookupMapper: BaseColumnType[Lookup] = MappedColumnType.base[Lookup, K](_.key, Lookup(_))
+    override def lookupQuery(lookup: Lookup) = lookup match {
+      case Lookup.NotSet => this.filter(_ => false)
+      case _             => this.filter(_.key is lookup.key)
     }
 
     val lookup: T => Column[Lookup] = t => t.key.asColumnOf[Lookup]
@@ -288,6 +299,7 @@ trait KeyedTableComponent extends JdbcDriver {
     type Ent[T <: EntityTableBase] = Entity[T#Key, T#Value]
     type KEnt[T <: EntityTableBase] = KeyedEntity[T#Key, T#Value]
     def Ent[T <: EntityTableBase](value: T#Value) = new KeylessEntity[T#Key, T#Value](value)
+    type Lookups[K, A] = KeyedTableComponent.this.Lookups[K, A]
     type KeyedTableQuery[K, A, T <: KeyedTable[K, A]] = KeyedTableComponent.this.KeyedTableQuery[K, A, T]
     type EntTableQuery[K, V, T <: EntityTable[K, V]] = KeyedTableComponent.this.EntTableQuery[K, V, T]
   }
