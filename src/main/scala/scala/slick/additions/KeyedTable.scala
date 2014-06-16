@@ -49,13 +49,10 @@ trait KeyedTableComponent extends JdbcDriver {
     def keyColumnOptions = List(O.PrimaryKey, O.NotNull, O.AutoInc)
     def key = column[Key](keyColumnName, keyColumnOptions: _*)
     implicit def keyMapper: TypedType[Key]
-    def tableQuery: Query[KeyedTableBase, _]
   }
 
   abstract class KeyedTable[K, A](tag: Tag, tableName: String)(implicit val keyMapper: BaseColumnType[K]) extends Table[A](tag, tableName) with KeyedTableBase {
     type Key = K
-
-    def tableQuery: Query[KeyedTable[K, A], A]
   }
 
   trait EntityTableBase extends KeyedTableBase { this: Table[_] =>
