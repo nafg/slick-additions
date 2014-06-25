@@ -41,7 +41,7 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
 
     override val lookupLenses = List(OneToManyLens[Long, Phone, Phones](_.phones)(ps => _.copy(phones = ps)))
 
-    def findPeople(f: Query[(People, Phones), (People#KEnt, Phones#KEnt)] => Query[(People, Phones), (People#KEnt, Phones#KEnt)])(implicit session: Session) = {
+    def findPeople(f: Query[(People, Phones), (People#KEnt, Phones#KEnt), Seq] => Query[(People, Phones), (People#KEnt, Phones#KEnt), Seq])(implicit session: Session) = {
       val q = f(People leftJoin Phones on (People.lookup(_) is _.person))
       val list: List[(People#KEnt, Phones#KEnt)] = q.list
       val grouped = list.foldLeft(List.empty[(People#KEnt, List[Phones#KEnt])]) {

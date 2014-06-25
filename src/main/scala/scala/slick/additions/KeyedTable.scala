@@ -8,18 +8,19 @@ import scala.slick.profile.RelationalDriver
 import scala.slick.ast.ColumnOption
 import scala.slick.ast.TypedType
 import scala.slick.ast.BaseTypedType
-import scala.slick.ast.{ Node, Path, Symbol, TypeMapping }
+import scala.slick.ast.{ MappedScalaType, Node, Path, Symbol, TypeMapping }
 import scala.slick.driver.JdbcDriver
+import scala.reflect.{ classTag, ClassTag }
 
 trait KeyedTableComponent extends JdbcDriver {
   trait Lookups[K, A] {
     import simple.{ BaseColumnType => _, MappedColumnType => _, _ }
     type TableType
-    def lookupQuery(lookup: Lookup): Query[TableType, A]
+    def lookupQuery(lookup: Lookup): Query[TableType, A, Seq]
     sealed abstract class Lookup {
       def key: K
       def value: Option[A]
-      def query: Query[TableType, A] = lookupQuery(this)
+      def query: Query[TableType, A, Seq] = lookupQuery(this)
 
       def fetched(implicit session: Session) =
         query.firstOption map { a => Lookup.Fetched(key, a) } getOrElse this
@@ -67,26 +68,33 @@ trait KeyedTableComponent extends JdbcDriver {
 
     import simple.{ EntityTable => _, _ }
 
-    def tableQuery: Query[EntityTable[K, V], KEnt]
+    def tableQuery: Query[EntityTable[K, V], KEnt, Seq]
 
     implicit class MapProj[Value](value: Value) {
-      def <->[R, Unpacked](construct: Option[K] => Unpacked => R, extract: R => Option[Unpacked])(implicit shape: Shape[_ <: ShapeLevel.Flat, Value, Unpacked, _]): MappedProj[Value, Unpacked, R] =
-        new MappedProj[Value, Unpacked, R](value, construct, extract(_).get)(shape)
+      def <->[R : ClassTag, Unpacked](construct: Option[K] => Unpacked => R, extract: R => Option[Unpacked])(implicit shape: Shape[_ <: FlatShapeLevel, Value, Unpacked, _]): MappedProj[Value, Unpacked, R] =
+        new MappedProj[Value, Unpacked, R](value, construct, extract(_).get)(shape, classTag[R])
     }
     implicit class MapProjShapedValue[T, U](v: ShapedValue[T, U]) {
-      def <->[R](construct: Option[K] => U => R, extract: R => Option[U]): MappedProj[T, U, R] =
-        new MappedProj[T, U, R](v.value, construct, extract(_).get)(v.shape)
+      def <->[R : ClassTag](construct: Option[K] => U => R, extract: R => Option[U]): MappedProj[T, U, R] =
+        new MappedProj[T, U, R](v.value, construct, extract(_).get)(v.shape, classTag[R])
     }
 
-    class MappedProj[Src, Unpacked, MappedAs](val source: Src, val construct: (Option[K] => Unpacked => MappedAs), val extract: (MappedAs => Unpacked))(implicit val shape: Shape[_ <: ShapeLevel.Flat, Src, Unpacked, _]) extends ColumnBase[MappedAs] {
+    class MappedProj[Src, Unpacked, MappedAs](val source: Src, val construct: (Option[K] => Unpacked => MappedAs), val extract: (MappedAs => Unpacked))(implicit val shape: Shape[_ <: FlatShapeLevel, Src, Unpacked, _], tag: ClassTag[MappedAs]) extends ColumnBase[MappedAs] {
+      override def toNode: Node = TypeMapping(
+        shape.toNode(source),
+        MappedScalaType.Mapper(
+          (v => extract(v.asInstanceOf[MappedAs])),
+          (v => construct(None)(v.asInstanceOf[Unpacked])),
+          None
+        ),
+        tag
+      )
 
-      override def toNode: Node = TypeMapping(shape.toNode(source), (v => extract(v.asInstanceOf[MappedAs])), (v => construct(None)(v.asInstanceOf[Unpacked])))
-
-      def encodeRef(path: List[Symbol]): MappedProj[Src, Unpacked, MappedAs] = new MappedProj[Src, Unpacked, MappedAs](source, construct, extract)(shape) {
+      def encodeRef(path: List[Symbol]): MappedProj[Src, Unpacked, MappedAs] = new MappedProj[Src, Unpacked, MappedAs](source, construct, extract)(shape, tag) {
         override def toNode = Path(path)
       }
 
-      def ~:(kc: Column[K])(implicit kShape: Shape[_ <: ShapeLevel.Flat, Column[K], K, _]): MappedProjection[KeyedEntity[K, MappedAs], (K, Unpacked)] = {
+      def ~:(kc: Column[K])(implicit kShape: Shape[_ <: FlatShapeLevel, Column[K], K, _]): MappedProjection[KeyedEntity[K, MappedAs], (K, Unpacked)] = {
         val ksv = new ToShapedValue(kc).shaped
         val ssv: ShapedValue[Src, Unpacked] = new ToShapedValue(source).shaped
         (ksv zip ssv).<>[KeyedEntity[K, MappedAs]](
@@ -96,8 +104,8 @@ trait KeyedTableComponent extends JdbcDriver {
     }
 
     object MappedProj {
-      implicit class IdentityProj[V, P](value: V)(implicit shape: Shape[_ <: ShapeLevel.Flat, V, P, _])
-        extends MappedProj[V, P, P](value, _ => identity[P], identity[P])(shape)
+      implicit class IdentityProj[V, P : ClassTag](value: V)(implicit shape: Shape[_ <: FlatShapeLevel, V, P, _])
+        extends MappedProj[V, P, P](value, _ => identity[P], identity[P])(shape, classTag[P])
     }
 
     def mapping: MappedProj[_, _, V]
@@ -114,7 +122,7 @@ trait KeyedTableComponent extends JdbcDriver {
     type TableType = T
 
     override def lookupQuery(lookup: Lookup) = lookup match {
-      case Lookup.NotSet => this.filter(_ => false)
+      case Lookup.NotSet => this.filter(_ => LiteralColumn(false))
       case _             => this.filter(_.key is lookup.key)
     }
 
@@ -168,7 +176,7 @@ trait KeyedTableComponent extends JdbcDriver {
         copy(xs, true)
       }
 
-      def query: Query[T2, KeyedEntity[K2, V2]] = {
+      def query: Query[T2, KeyedEntity[K2, V2], Seq] = {
         def ot = otherTable
         thisLookup match {
           case None =>
@@ -258,7 +266,7 @@ trait KeyedTableComponent extends JdbcDriver {
         clu.setLookupAndSave(key, v)
       }
 
-    def forInsertQuery[E](q: Query[T, E]) = q.map(_.mapping)
+    def forInsertQuery[E, C[_]](q: Query[T, E, C]) = q.map(_.mapping)
 
     def insert(v: V)(implicit session: simple.Session): SavedEntity[K, V] = insert(Ent(v): Ent)
 
