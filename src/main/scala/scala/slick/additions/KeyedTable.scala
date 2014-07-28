@@ -30,6 +30,7 @@ trait KeyedTableComponent extends JdbcDriver {
       case object NotSet extends Lookup {
         def key = throw new NoSuchElementException("key of NotSetLookup")
         def value = None
+        override def fetched(implicit session: Session) = this
       }
       final case class Unfetched(key: K) extends Lookup {
         def value = None
