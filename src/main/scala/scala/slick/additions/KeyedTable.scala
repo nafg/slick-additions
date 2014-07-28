@@ -117,7 +117,7 @@ trait KeyedTableComponent extends JdbcDriver {
     def * = all
   }
 
-  class KeyedTableQuery[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => T) extends TableQuery[T](cons) with Lookups[K, A] {
+  class KeyedTableQuery[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A])) extends TableQuery[T](cons) with Lookups[K, A] {
     import simple.{ BaseColumnType => _, MappedColumnType => _, _ }
     type Key = K
     type TableType = T
