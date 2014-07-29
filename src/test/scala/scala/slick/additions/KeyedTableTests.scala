@@ -14,7 +14,7 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
     def person = column[People.Lookup]("personid")
     def kind = column[String]("kind")
     def number = column[String]("number")
-    def mapping = (kind, number, person) <-> (_ => Phone.tupled, Phone.unapply _)
+    def mapping = (kind, number, person) <-> (_ => Phone.tupled, Phone.unapply)
   }
   object Phones extends EntTableQuery[Long, Phone, Phones](new Phones(_))
 
@@ -42,7 +42,7 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
     override val lookupLenses = List(OneToManyLens[Long, Phone, Phones](_.phones)(ps => _.copy(phones = ps)))
 
     def findPeople(f: Query[(People, Phones), (People#KEnt, Phones#KEnt), Seq] => Query[(People, Phones), (People#KEnt, Phones#KEnt), Seq])(implicit session: Session) = {
-      val q = f(People leftJoin Phones on (People.lookup(_) is _.person))
+      val q = f(People leftJoin Phones on (People.lookup(_) === _.person))
       val list: List[(People#KEnt, Phones#KEnt)] = q.list
       val grouped = list.foldLeft(List.empty[(People#KEnt, List[Phones#KEnt])]) {
         case (xs, (person, phone)) =>
@@ -81,7 +81,7 @@ class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
     db.withSession { implicit session: Session =>
       def testRoundTrip(in: Ent[People]) = {
         val saved = People save in
-        People.findPeople(_ where (_._1.key is saved.key)) match {
+        People.findPeople(_ filter (_._1.key === saved.key)) match {
           case loaded :: Nil =>
             println(s"Loaded $loaded")
             saved should equal (loaded)

@@ -2,15 +2,11 @@ package scala.slick
 package additions
 
 import scala.slick.lifted._
-import scala.slick.direct.AnnotationMapper.column
-import scala.slick.profile.RelationalProfile
-import scala.slick.profile.RelationalDriver
-import scala.slick.ast.ColumnOption
 import scala.slick.ast.TypedType
-import scala.slick.ast.BaseTypedType
 import scala.slick.ast.{ MappedScalaType, Node, Path, Symbol, TypeMapping }
 import scala.slick.driver.JdbcDriver
 import scala.reflect.{ classTag, ClassTag }
+import scala.language.higherKinds
 
 trait KeyedTableComponent extends JdbcDriver {
   trait Lookups[K, A] {
@@ -23,7 +19,7 @@ trait KeyedTableComponent extends JdbcDriver {
       def query: Query[TableType, A, Seq] = lookupQuery(this)
 
       def fetched(implicit session: Session) =
-        query.firstOption map { a => Lookup.Fetched(key, a) } getOrElse this
+        query.firstOption.fold(this)(a => Lookup.Fetched(key, a))
       def apply()(implicit session: Session) = fetched.value
     }
     object Lookup {
@@ -84,8 +80,8 @@ trait KeyedTableComponent extends JdbcDriver {
       override def toNode: Node = TypeMapping(
         shape.toNode(source),
         MappedScalaType.Mapper(
-          (v => extract(v.asInstanceOf[MappedAs])),
-          (v => construct(None)(v.asInstanceOf[Unpacked])),
+          v => extract(v.asInstanceOf[MappedAs]),
+          v => construct(None)(v.asInstanceOf[Unpacked]),
           None
         ),
         tag
@@ -124,7 +120,7 @@ trait KeyedTableComponent extends JdbcDriver {
 
     override def lookupQuery(lookup: Lookup) = lookup match {
       case Lookup.NotSet => this.filter(_ => LiteralColumn(false))
-      case _             => this.filter(_.key is lookup.key)
+      case _             => this.filter(_.key === lookup.key)
     }
 
     val lookup: T => Column[Lookup] = t => t.key.asColumnOf[Lookup]
@@ -174,16 +170,16 @@ trait KeyedTableComponent extends JdbcDriver {
             if(e.isSaved) e
             else otherTable save e
         }
-        copy(xs, true)
+        copy(xs, isFetched = true)
       }
 
       def query: Query[T2, KeyedEntity[K2, V2], Seq] = {
         def ot = otherTable
         thisLookup match {
           case None =>
-            ot where (_ => LiteralColumn(false))
+            ot filter (_ => LiteralColumn(false))
           case Some(lu) =>
-            ot where (column(_) is lu)
+            ot filter (column(_) === lu)
         }
       }
 
@@ -286,7 +282,7 @@ trait KeyedTableComponent extends JdbcDriver {
       SavedEntity(k2, v2)
     }
     def update(ke: KEnt)(implicit session: simple.Session): SavedEntity[K, V] = {
-      forInsertQuery(this.where(_.key is ke.key)) update ke.value
+      forInsertQuery(this.filter(_.key === ke.key)) update ke.value
       SavedEntity(ke.key, updateAndSaveLookupLenses(ke.key, ke.value))
     }
     def save(e: Entity[K, V])(implicit session: simple.Session): SavedEntity[K, V] = {
@@ -297,7 +293,7 @@ trait KeyedTableComponent extends JdbcDriver {
     }
     def delete(ke: KEnt)(implicit session: simple.Session) = {
       import simple._
-      this.filter(_.key is ke.key).delete
+      this.filter(_.key === ke.key).delete
     }
   }
 
