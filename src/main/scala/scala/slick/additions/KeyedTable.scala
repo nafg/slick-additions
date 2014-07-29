@@ -80,7 +80,7 @@ trait KeyedTableComponent extends JdbcDriver {
         new MappedProj[T, U, R](v.value, construct, extract(_).get)(v.shape, classTag[R])
     }
 
-    class MappedProj[Src, Unpacked, MappedAs](val source: Src, val construct: (Option[K] => Unpacked => MappedAs), val extract: (MappedAs => Unpacked))(implicit val shape: Shape[_ <: FlatShapeLevel, Src, Unpacked, _], tag: ClassTag[MappedAs]) extends ColumnBase[MappedAs] {
+    class MappedProj[Src, Unpacked, MappedAs](val source: Src, val construct: (Option[K] => Unpacked => MappedAs), val extract: (MappedAs => Unpacked))(implicit val shape: Shape[_ <: FlatShapeLevel, Src, Unpacked, _], tag: ClassTag[MappedAs]) extends Rep[MappedAs] {
       override def toNode: Node = TypeMapping(
         shape.toNode(source),
         MappedScalaType.Mapper(
@@ -266,6 +266,8 @@ trait KeyedTableComponent extends JdbcDriver {
       lookupLenses.foldRight(v){ (clu, v) =>
         clu.setLookupAndSave(key, v)
       }
+
+    implicit val mappingRepShape = RepShape[FlatShapeLevel, T#MappedProj[_, _, V], V]
 
     def forInsertQuery[E, C[_]](q: Query[T, E, C]) = q.map(_.mapping)
 
