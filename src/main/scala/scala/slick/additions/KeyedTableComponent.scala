@@ -185,7 +185,7 @@ trait KeyedTableComponent extends JdbcDriver {
 
       def deleteQuery(keep: Seq[K2]) =
         query.filter {
-          case t: T2 with simple.EntityTable[K2, V2] =>
+          case t: simple.EntityTable[K2, V2] =>
             implicit def tm: BaseColumnType[K2] = t.keyMapper
             !(t.key inSet keep)
         }

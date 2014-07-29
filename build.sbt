@@ -1,4 +1,4 @@
-scalaVersion := "2.10.4"
+crossScalaVersions := Seq("2.10.4", "2.11.2")
 
 libraryDependencies += "com.typesafe.slick" %% "slick" % "2.1.0-RC3"
 
@@ -6,7 +6,7 @@ name := "slick-additions"
 
 organization := "io.github.nafg"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.0.M6-SNAP5" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.0" % "test"
 
 libraryDependencies += "com.h2database" % "h2" % "1.3.170" % "test"
 
