@@ -8,3 +8,4 @@ target/
 *.sublime-workspace
 sonar-project.properties
 *.h2.db
+*.lock.db
