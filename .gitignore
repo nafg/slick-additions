@@ -1,1 +1,10 @@
 target/
+.classpath
+.project
+/.settings/
+/.idea/
+/.idea_modules/
+*.sublime-project
+*.sublime-workspace
+sonar-project.properties
+*.h2.db
