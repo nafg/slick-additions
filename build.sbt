@@ -13,3 +13,5 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.0" % "test"
 libraryDependencies += "com.h2database" % "h2" % "1.3.170" % "test"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "0.9.28" % "test"
+
+scalacOptions ++= Seq("-deprecation", "-unchecked")
