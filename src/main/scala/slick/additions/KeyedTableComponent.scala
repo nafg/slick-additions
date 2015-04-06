@@ -1,16 +1,17 @@
-package scala.slick
+package slick
 package additions
 
-import scala.slick.lifted._
-import scala.slick.ast.TypedType
-import scala.slick.ast.{ MappedScalaType, Node, Path, Symbol, TypeMapping }
-import scala.slick.driver.JdbcDriver
+import slick.lifted._
+import slick.ast.TypedType
+import slick.ast.{ MappedScalaType, Node, Path, Symbol, TypeMapping }
+import slick.driver.JdbcDriver
 import scala.reflect.{ classTag, ClassTag }
 import scala.language.higherKinds
+import scala.concurrent.ExecutionContext
 
 trait KeyedTableComponent extends JdbcDriver {
   trait Lookups[K, A] {
-    import simple.{ BaseColumnType => _, MappedColumnType => _, _ }
+    import api.{ BaseColumnType => _, MappedColumnType => _, _ }
     type TableType
     def lookupQuery(lookup: Lookup): Query[TableType, A, Seq]
     sealed abstract class Lookup {
@@ -18,22 +19,22 @@ trait KeyedTableComponent extends JdbcDriver {
       def value: Option[A]
       def query: Query[TableType, A, Seq] = lookupQuery(this)
 
-      def fetched(implicit session: Session) =
-        query.firstOption.fold(this)(a => Lookup.Fetched(key, a))
-      def apply()(implicit session: Session) = fetched.value
+      def fetched(implicit ec: ExecutionContext): DBIO[Lookup] =
+        query.result.headOption.map(_.fold(this)(a => Lookup.Fetched(key, a)))
+      def apply()(implicit ec: ExecutionContext): DBIO[Option[A]] = fetched.map(_.value)
     }
     object Lookup {
       case object NotSet extends Lookup {
         def key = throw new NoSuchElementException("key of NotSetLookup")
         def value = None
-        override def fetched(implicit session: Session) = this
+        override def fetched(implicit ec: ExecutionContext) = DBIO.successful(this)
       }
       final case class Unfetched(key: K) extends Lookup {
         def value = None
       }
       final case class Fetched(key: K, ent: A) extends Lookup {
         def value = Some(ent)
-        override def apply()(implicit session: Session) = value
+        override def apply()(implicit ec: ExecutionContext) = DBIO.successful(value)
       }
       def apply(key: K): Lookup = Unfetched(key)
       def apply(key: K, precache: A): Lookup = Fetched(key, precache)
@@ -44,7 +45,7 @@ trait KeyedTableComponent extends JdbcDriver {
   trait KeyedTableBase  { keyedTable: Table[_] =>
     type Key
     def keyColumnName = "id"
-    def keyColumnOptions = List(O.PrimaryKey, O.NotNull, O.AutoInc)
+    def keyColumnOptions = List(O.PrimaryKey, O.AutoInc)
     def key = column[Key](keyColumnName, keyColumnOptions: _*)
     implicit def keyMapper: TypedType[Key]
   }
@@ -63,7 +64,7 @@ trait KeyedTableComponent extends JdbcDriver {
     type Value = V
     def Ent(v: Value) = new KeylessEntity[Key, Value](v)
 
-    import simple.{ EntityTable => _, _ }
+    import api.{ EntityTable => _, _ }
 
     def tableQuery: Query[EntityTable[K, V], KEnt, Seq]
 
@@ -87,11 +88,11 @@ trait KeyedTableComponent extends JdbcDriver {
         tag
       )
 
-      def encodeRef(path: List[Symbol]): MappedProj[Src, Unpacked, MappedAs] = new MappedProj[Src, Unpacked, MappedAs](source, construct, extract)(shape, tag) {
-        override def toNode = Path(path)
+      def encodeRef(path: Node): MappedProj[Src, Unpacked, MappedAs] = new MappedProj[Src, Unpacked, MappedAs](source, construct, extract)(shape, tag) {
+        override def toNode = path
       }
 
-      def ~:(kc: Column[K])(implicit kShape: Shape[_ <: FlatShapeLevel, Column[K], K, _]): MappedProjection[KeyedEntity[K, MappedAs], (K, Unpacked)] = {
+      def ~:(kc: Rep[K])(implicit kShape: Shape[_ <: FlatShapeLevel, Rep[K], K, _]): MappedProjection[KeyedEntity[K, MappedAs], (K, Unpacked)] = {
         val ksv = new ToShapedValue(kc).shaped
         val ssv: ShapedValue[Src, Unpacked] = new ToShapedValue(source).shaped
         (ksv zip ssv).<>[KeyedEntity[K, MappedAs]](
@@ -114,7 +115,7 @@ trait KeyedTableComponent extends JdbcDriver {
   }
 
   class KeyedTableQuery[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A])) extends TableQuery[T](cons) with Lookups[K, A] {
-    import simple.{ BaseColumnType => _, MappedColumnType => _, _ }
+    import api.{ BaseColumnType => _, MappedColumnType => _, _ }
     type Key = K
     type TableType = T
 
@@ -123,13 +124,13 @@ trait KeyedTableComponent extends JdbcDriver {
       case _             => this.filter(_.key === lookup.key)
     }
 
-    val lookup: T => Column[Lookup] = t => t.key.asColumnOf[Lookup]
+    val lookup: T => Rep[Lookup] = t => t.key.asColumnOf[Lookup]
 
-    class OneToMany[K2, V2, T2 <: simple.EntityTable[K2, V2]](
-      private[KeyedTableQuery] val otherTable: simple.EntTableQuery[K2, V2, T2],
+    class OneToMany[K2, V2, T2 <: api.EntityTable[K2, V2]](
+      private[KeyedTableQuery] val otherTable: api.EntTableQuery[K2, V2, T2],
       private[KeyedTableQuery] val thisLookup: Option[Lookup]
     )(
-      private[KeyedTableQuery] val column: T2 => Column[Lookup],
+      private[KeyedTableQuery] val column: T2 => Rep[Lookup],
       private[KeyedTableQuery] val setLookup: Lookup => V2 => V2
     )(
       val items: Seq[Entity[K2, V2]] = Nil,
@@ -158,19 +159,20 @@ trait KeyedTableComponent extends JdbcDriver {
       def withLookup(lookup: Lookup): OneToMany[K2, V2, T2] =
         new OneToMany[K2, V2, T2](otherTable, Some(lookup))(column, setLookup)(items map { e => e.map(setLookup(lookup)) }, isFetched)
 
-      import simple.{ BaseColumnType => _, _ }
+      import api.{ BaseColumnType => _, _ }
 
-      def saved(implicit session: Session): OneToMany[K2, V2, T2] = {
+      def saved(implicit ec: ExecutionContext): DBIO[OneToMany[K2, V2, T2]] = {
+        //TODO
         if(isFetched) {
           val dq = deleteQuery(items.collect { case ke: KeyedEntity[K2, V2] => ke.key })
           dq.delete
         }
-        val xs = items map {
+        val xs = DBIO.sequence(items map {
           case e: Entity[K2, V2] =>
-            if(e.isSaved) e
+            if(e.isSaved) DBIO.successful(e)
             else otherTable save e
-        }
-        copy(xs, isFetched = true)
+        })
+        xs.map(copy(_, isFetched = true))
       }
 
       def query: Query[T2, KeyedEntity[K2, V2], Seq] = {
@@ -185,20 +187,20 @@ trait KeyedTableComponent extends JdbcDriver {
 
       def deleteQuery(keep: Seq[K2]) =
         query.filter {
-          case t: simple.EntityTable[K2, V2] =>
+          case t: api.EntityTable[K2, V2] =>
             implicit def tm: BaseColumnType[K2] = t.keyMapper
             !(t.key inSet keep)
         }
 
-      def fetched(implicit session: Session) = copy(query.list, true)
+      def fetched(implicit ec: ExecutionContext) = query.result.map(copy(_, true))
 
       override def toString = s"${KeyedTableQuery.this.getClass.getSimpleName}.OneToMany($items)"
     }
 
-    def OneToMany[K2, V2, T2 <: simple.EntityTable[K2, V2]](
-      otherTable: simple.EntTableQuery[K2, V2, T2], lookup: Option[Lookup]
+    def OneToMany[K2, V2, T2 <: api.EntityTable[K2, V2]](
+      otherTable: api.EntTableQuery[K2, V2, T2], lookup: Option[Lookup]
     )(
-      column: T2 => Column[Lookup], setLookup: Lookup => V2 => V2, initial: Seq[Entity[K2, V2]] = null
+      column: T2 => Rep[Lookup], setLookup: Lookup => V2 => V2, initial: Seq[Entity[K2, V2]] = null
     ): OneToMany[K2, V2, T2] = {
       val init = Option(initial)
       new OneToMany[K2, V2, T2](otherTable, lookup)(column, setLookup)(init getOrElse Nil, init.isDefined)
@@ -207,7 +209,7 @@ trait KeyedTableComponent extends JdbcDriver {
   }
 
   class EntTableQuery[K : BaseColumnType, V, T <: EntityTable[K, V]](cons: Tag => T with EntityTable[K, V]) extends KeyedTableQuery[K, KeyedEntity[K, V], T](cons) {
-    import simple.{ BaseColumnType => _, MappedColumnType => _, _ }
+    import api.{ BaseColumnType => _, MappedColumnType => _, _ }
     type Value = V
     type Ent = Entity[Key, Value]
     type KEnt = KeyedEntity[Key, Value]
@@ -233,71 +235,78 @@ trait KeyedTableComponent extends JdbcDriver {
        * @param f a function that transforms a lookup object
        * @return an entity value with the new lookup
        */
-      def apply(v: V, f: L => L): V
+      def apply(v: V, f: L => DBIO[L])(implicit ec: ExecutionContext): DBIO[V]
       /**
        * Create a lookup object transformer that
        * synchronizes the lookup object to the database
        * (which may generate new keys)
        */
-      def saved(implicit session: simple.Session): L => L
+      def saved(implicit ec: ExecutionContext): L => DBIO[L]
       /**
        * Set the lookup object's key
        */
       def setLookup: K => L => L
-      def setLookupAndSave(key: K, v: V)(implicit session: simple.Session) = apply(v, setLookup(key) andThen saved)
+
+      def setLookupAndSave(key: K, v: V)(implicit ec: ExecutionContext) = {
+        // val withLookup: L => L = setLookup(key)
+        apply(v, setLookup(key) andThen saved)
+      }
     }
 
-    case class OneToManyLens[K2, V2, T2 <: simple.EntityTable[K2, V2]](get: V => OneToMany[K2, V2, T2])(val set: OneToMany[K2, V2, T2] => V => V) extends LookupLens[OneToMany[K2, V2, T2]] {
-      def apply(v: V, f: OneToMany[K2, V2, T2] => OneToMany[K2, V2, T2]) = {
-        set(f(get(v)))(v)
+    case class OneToManyLens[K2, V2, T2 <: api.EntityTable[K2, V2]](get: V => OneToMany[K2, V2, T2])(val set: OneToMany[K2, V2, T2] => V => V) extends LookupLens[OneToMany[K2, V2, T2]] {
+      def apply(v: V, f: OneToMany[K2, V2, T2] => DBIO[OneToMany[K2, V2, T2]])(implicit ec: ExecutionContext): DBIO[V] = {
+        val x = f(get(v))
+        x map (set(_)(v))
       }
       val setLookup = { key: K => o2m: OneToMany[K2, V2, T2] => o2m withLookup Lookup(key) }
-      def saved(implicit session: simple.Session) = { otm: OneToMany[K2, V2, T2] => otm.saved }
+      def saved(implicit ec: ExecutionContext) = { otm: OneToMany[K2, V2, T2] => otm.saved }
     }
 
 
     def lookupLenses: Seq[LookupLens[_]] = Nil
 
-    private def updateAndSaveLookupLenses(key: K, v: V)(implicit session: simple.Session) =
-      lookupLenses.foldRight(v){ (clu, v) =>
-        clu.setLookupAndSave(key, v)
+    private def updateAndSaveLookupLenses(key: K, v: V)(implicit ec: ExecutionContext): DBIO[V] =
+      lookupLenses.foldRight(DBIO.successful(v): DBIO[V]){ (clu, v) =>
+        v.flatMap(clu.setLookupAndSave(key, _))
       }
 
-    implicit val mappingRepShape = RepShape[FlatShapeLevel, T#MappedProj[_, _, V], V]
+    implicit val mappingRepShape: Shape[FlatShapeLevel, T#MappedProj[_, _, V], V, T#MappedProj[_, _, V]] = RepShape[FlatShapeLevel, T#MappedProj[_, _, V], V]
 
     def forInsertQuery[E, C[_]](q: Query[T, E, C]) = q.map(_.mapping)
 
-    def insert(v: V)(implicit session: simple.Session): SavedEntity[K, V] = insert(Ent(v): Ent)
+    def insert(v: V)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] = insert(Ent(v): Ent)
 
-    def insert(e: Ent)(implicit session: simple.Session): SavedEntity[K, V] = {
+    def insert(e: Ent)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] = {
       // Insert it and get the new or old key
       val k2 = e match {
         case ke: this.KEnt =>
-          this returning this.map(_.key: Column[Key]) forceInsert ke
-        case ke: this.Ent  =>
-          forInsertQuery(this) returning this.map(_.key) insert ke.value
+          this returning this.map(_.key: Rep[Key]) forceInsert ke
+        case ent: this.Ent  =>
+          forInsertQuery(this) returning this.map(_.key) += ent.value
       }
       // Apply the key to all child lookups (e.g., OneToMany)
-      val v2 = updateAndSaveLookupLenses(k2, e.value)
-      SavedEntity(k2, v2)
+      val v2 = k2 flatMap (updateAndSaveLookupLenses(_, e.value))
+      for(k <- k2; v <- v2) yield SavedEntity(k, v)
     }
-    def update(ke: KEnt)(implicit session: simple.Session): SavedEntity[K, V] = {
-      forInsertQuery(this.filter(_.key === ke.key)) update ke.value
-      SavedEntity(ke.key, updateAndSaveLookupLenses(ke.key, ke.value))
-    }
-    def save(e: Entity[K, V])(implicit session: simple.Session): SavedEntity[K, V] = {
+    def update(ke: KEnt)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] =
+      for {
+        _ <- forInsertQuery(this.filter(_.key === ke.key)) update ke.value
+        v <- updateAndSaveLookupLenses(ke.key, ke.value)
+      } yield SavedEntity(ke.key, v)
+
+    def save(e: Entity[K, V])(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] = {
       e match {
         case ke: KEnt => update(ke)
         case ke: Ent  => insert(ke)
       }
     }
-    def delete(ke: KEnt)(implicit session: simple.Session) = {
-      import simple._
+    def delete(ke: KEnt)(implicit ec: ExecutionContext) = {
+      import api._
       this.filter(_.key === ke.key).delete
     }
   }
 
-  trait SimpleQL extends super.SimpleQL {
+  trait API extends super.API {
     type KeyedTable[K, A] = KeyedTableComponent.this.KeyedTable[K, A]
     type EntityTable[K, A] = KeyedTableComponent.this.EntityTable[K, A]
     type Ent[T <: EntityTableBase] = Entity[T#Key, T#Value]
@@ -307,5 +316,5 @@ trait KeyedTableComponent extends JdbcDriver {
     type KeyedTableQuery[K, A, T <: KeyedTable[K, A]] = KeyedTableComponent.this.KeyedTableQuery[K, A, T]
     type EntTableQuery[K, V, T <: EntityTable[K, V]] = KeyedTableComponent.this.EntTableQuery[K, V, T]
   }
-  override val simple: SimpleQL with Implicits = new SimpleQL with Implicits {}
+  override val api: API = new API {}
 }

@@ -1,12 +1,12 @@
-package scala.slick
+package slick
 package additions
 
 import scala.reflect.ClassTag
-import jdbc.GetResult
-import scala.slick.profile.RelationalProfile
+import slick.jdbc.GetResult
+import slick.profile.RelationalProfile
 
 trait BitMasks { this: RelationalProfile =>
-  import Implicit._
+  import api._
 
   trait Bitmaskable[A] {
     def bitmasked: A => Bitmasked

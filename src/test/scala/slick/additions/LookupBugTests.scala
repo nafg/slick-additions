@@ -1,8 +1,12 @@
-package scala.slick.test
+package slick.test
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 object LookupBugTests extends App {
   object driver extends scala.slick.driver.H2Driver
-  import driver.simple._
+  import driver.api._
   val db = Database.forURL("jdbc:h2:test0", driver = "org.h2.Driver")
 
   implicit def mapper: BaseColumnType[Unfetched] = MappedColumnType.base[Unfetched, Long](_.key, Unfetched(_))
@@ -22,14 +26,14 @@ object LookupBugTests extends App {
   }
   val People = TableQuery[People]
 
-  val ddl = Phones.ddl ++ People.ddl
+  val schema = Phones.schema ++ People.schema
 
-  db.withSession { implicit session: Session =>
-    ddl.create
-    try {
-      val id = People.map(_.name) returning People.map(_.key) insert "a"
-      Phones.map(_.person) insert Unfetched(id)
-      People.filter(_.column[Unfetched]("id") in Phones.map(_.person)).list
-    } finally ddl.drop
-  }
+  val actions = (for {
+    _  <- schema.create
+    id <- People.map(_.name) returning People.map(_.key) += "a"
+    _  <- Phones.map(_.person) += Unfetched(id)
+    xs <- People.filter(_.column[Unfetched]("id") in Phones.map(_.person)).result
+  } yield xs).andFinally(schema.drop)
+
+  Await.result(db run actions, Duration.Inf)
 }

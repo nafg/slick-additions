@@ -1,4 +1,4 @@
-package scala.slick
+package slick
 package additions
 
 sealed trait Entity[K, +A] {
