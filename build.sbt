@@ -1,6 +1,6 @@
-crossScalaVersions := Seq("2.10.4", "2.11.2")
+crossScalaVersions := Seq("2.10.5", "2.11.6")
 
-libraryDependencies += "com.typesafe.slick" %% "slick" % "2.1.0-RC3"
+libraryDependencies += "com.typesafe.slick" %% "slick" % "2.1.0"
 
 name := "slick-additions"
 
