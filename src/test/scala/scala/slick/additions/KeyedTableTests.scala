@@ -2,9 +2,9 @@ package scala.slick.additions
 
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.Matchers
 
-class KeyedTableTests extends FunSuite with ShouldMatchers with BeforeAndAfter {
+class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
   object driver extends scala.slick.driver.H2Driver with KeyedTableComponent
   import driver.simple._
 
