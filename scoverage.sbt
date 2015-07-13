@@ -1,9 +1,3 @@
-import CoverallsPlugin.CoverallsKeys._
+CoverallsKeys.coverallsToken := sys.props.get("coveralls-repo-token")
 
-instrumentSettings
-
-CoverallsPlugin.coverallsSettings
-
-ScoverageKeys.highlighting := true
-
-sys.props.get("coveralls-repo-token").toList.map(coverallsToken := _)
+ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := true
