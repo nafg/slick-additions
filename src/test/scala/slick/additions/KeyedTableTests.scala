@@ -66,7 +66,7 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
     }
   }
 
-  val db = Database.forURL("jdbc:h2:test", driver = "org.h2.Driver")
+  val db = Database.forURL("jdbc:h2:./test", driver = "org.h2.Driver")
 
   val schema = Phones.schema ++ People.schema
 
