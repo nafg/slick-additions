@@ -71,11 +71,11 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
   val schema = Phones.schema ++ People.schema
 
   before {
-    db run schema.create
+    Await.result(db run schema.create, Duration.Inf)
   }
 
   after {
-    db run schema.drop
+    Await.result(db run schema.drop, Duration.Inf)
   }
 
   test("OneToMany") {
