@@ -1,5 +1,7 @@
 package slick.additions
 
+import slick.driver.H2Driver
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -9,7 +11,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.Matchers
 
 class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
-  object driver extends scala.slick.driver.H2Driver with KeyedTableComponent
+  object driver extends H2Driver with KeyedTableComponent
   import driver.api._
 
   case class Phone(kind: String, number: String, person: People.Lookup = People.Lookup.NotSet)
