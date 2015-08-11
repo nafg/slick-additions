@@ -290,8 +290,10 @@ trait KeyedTableComponent extends JdbcDriver {
           forInsertQuery(this) returning this.map(_.key) += ent.value
       }
       // Apply the key to all child lookups (e.g., OneToMany)
-      val v2 = k2 flatMap (updateAndSaveLookupLenses(_, e.value))
-      for(k <- k2; v <- v2) yield SavedEntity(k, v)
+      for {
+        k <- k2
+        v <- updateAndSaveLookupLenses(k, e.value)
+      } yield SavedEntity(k, v)
     }
     def update(ke: KEnt)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] =
       for {
