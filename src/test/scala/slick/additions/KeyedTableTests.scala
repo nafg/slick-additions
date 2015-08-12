@@ -12,6 +12,29 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
   object driver extends scala.slick.driver.H2Driver with KeyedTableComponent
   import driver.api._
 
+  case class Suburb(name: String, postcode: String, state: String, country: String)
+
+  class Suburbs(tag: Tag) extends EntityTable[Int, Suburb](tag, "SUBURB") {
+
+    def tableQuery = Suburbs
+
+    def name = column[String]("NAME")
+    def postcode = column[String]("POSTCODE")
+    def state = column[String]("STATE")
+    def country = column[String]("COUNTRY")
+
+    def mapping = (name, postcode, state, country) <-> (_ => Suburb.tupled, Suburb.unapply)
+  }
+
+  object Suburbs extends EntTableQuery[Int, Suburb, Suburbs](new Suburbs(_)) {
+    def findSuburbs(f: Query[Suburbs, Suburbs#KEnt, Seq] => Query[Suburbs, Suburbs#KEnt, Seq]) = {
+      f(Suburbs)
+    }
+    def findById(id: Int) = {
+      findSuburbs(_ filter (_.key === id))
+    }
+  }
+
   case class Phone(kind: String, number: String, person: People.Lookup = People.Lookup.NotSet)
   class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones") {
     def tableQuery = Phones
@@ -68,7 +91,7 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
 
   val db = Database.forURL("jdbc:h2:./test", driver = "org.h2.Driver")
 
-  val schema = Phones.schema ++ People.schema
+  val schema = Phones.schema ++ People.schema ++ Suburbs.schema
 
   before {
     Await.result(db run schema.create, Duration.Inf)
@@ -76,6 +99,17 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
 
   after {
     Await.result(db run schema.drop, Duration.Inf)
+  }
+
+  test("Simple insert") {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val suburb = Suburb("Longueville", "2066", "NSW", "Australia")
+    Await.result(db.run(Suburbs.save(Ent[Suburbs](suburb))), Duration.Inf)
+    val retrievedSuburbs = Await.result(db.run(Suburbs.findById(1).result), Duration.Inf)
+    retrievedSuburbs.length should equal(1)
+    val retrievedSuburb = retrievedSuburbs.head
+    retrievedSuburb.key should equal(1)
+    retrievedSuburb.value should equal(Suburb("Longueville", "2066", "NSW", "Australia"))
   }
 
   test("OneToMany") {
