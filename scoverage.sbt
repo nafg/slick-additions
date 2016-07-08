@@ -1,9 +1,1 @@
-import CoverallsPlugin.CoverallsKeys._
-
-instrumentSettings
-
-CoverallsPlugin.coverallsSettings
-
-ScoverageKeys.highlighting := true
-
-sys.props.get("coveralls-repo-token").toList.map(coverallsToken := _)
+sys.props.get("coveralls-repo-token").toList.map(s => CoverallsKeys.coverallsToken := Some(s))

@@ -3,8 +3,12 @@ cache:
   directories:
   - $HOME/.ivy2
   - $HOME/.sbt
-script: sbt +test +coveralls
-after_success: sbt +package +publish
+script:
+  - sbt +clean coverage +test coverageReport &&
+    sbt coverageAggregate
+after_success:
+  - sbt coveralls
+  - sbt +clean +package +publish
 env:
   global:
     secure: APrQBWcOM2kkihTSSPIEiPEAIiM1Gi1HLNK6Sz/cBtRttXVnMUr7CHU9hbPKtJP94iYmc3gZKY5YjZVG7oKh1B3hUx7booHMPS0fyaC0bxUwRLSWIrav+c2cTzwYvoKz4smS81njrq+i4F/g/+05jqsiwSu7bpjiueiXjROXLZk=
