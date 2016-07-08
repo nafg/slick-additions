@@ -1,17 +1,17 @@
 package slick
 package additions
 
-import slick.lifted._
-import slick.ast.TypedType
-import slick.ast.{ MappedScalaType, Node, Path, Symbol, TypeMapping }
-import slick.driver.JdbcDriver
-import scala.reflect.{ classTag, ClassTag }
-import scala.language.higherKinds
 import scala.concurrent.ExecutionContext
+import scala.language.higherKinds
+import scala.reflect.{ClassTag, classTag}
+
+import slick.ast.{MappedScalaType, Node, TypeMapping, TypedType}
+import slick.driver.JdbcDriver
+import slick.lifted._
 
 trait KeyedTableComponent extends JdbcDriver {
   trait Lookups[K, A] {
-    import api.{ BaseColumnType => _, MappedColumnType => _, _ }
+    import api.{BaseColumnType => _, MappedColumnType => _, _}
     type TableType
     def lookupQuery(lookup: Lookup): Query[TableType, A, Seq]
     sealed abstract class Lookup {
@@ -64,7 +64,7 @@ trait KeyedTableComponent extends JdbcDriver {
     type Value = V
     def Ent(v: Value) = new KeylessEntity[Key, Value](v)
 
-    import api.{ EntityTable => _, _ }
+    import api.{EntityTable => _, _}
 
     def tableQuery: Query[EntityTable[K, V], KEnt, Seq]
 
@@ -115,7 +115,7 @@ trait KeyedTableComponent extends JdbcDriver {
   }
 
   class KeyedTableQuery[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A])) extends TableQuery[T](cons) with Lookups[K, A] {
-    import api.{ BaseColumnType => _, MappedColumnType => _, _ }
+    import api.{BaseColumnType => _, MappedColumnType => _, _}
     type Key = K
     type TableType = T
 
@@ -159,7 +159,7 @@ trait KeyedTableComponent extends JdbcDriver {
       def withLookup(lookup: Lookup): OneToMany[K2, V2, T2] =
         new OneToMany[K2, V2, T2](otherTable, Some(lookup))(column, setLookup)(items map { e => e.map(setLookup(lookup)) }, isFetched)
 
-      import api.{ BaseColumnType => _, _ }
+      import api.{BaseColumnType => _, _}
 
       def saved(implicit ec: ExecutionContext): DBIO[OneToMany[K2, V2, T2]] = {
         //TODO
@@ -209,7 +209,7 @@ trait KeyedTableComponent extends JdbcDriver {
   }
 
   class EntTableQuery[K : BaseColumnType, V, T <: EntityTable[K, V]](cons: Tag => T with EntityTable[K, V]) extends KeyedTableQuery[K, KeyedEntity[K, V], T](cons) {
-    import api.{ BaseColumnType => _, MappedColumnType => _, _ }
+    import api.{BaseColumnType => _, MappedColumnType => _, _}
     type Value = V
     type Ent = Entity[Key, Value]
     type KEnt = KeyedEntity[Key, Value]
