@@ -1,5 +1,4 @@
-package scala.slick
-package additions
+package scala.slick.additions.entity
 
 sealed trait Entity[K, +A] {
   def keyOption: Option[K]
@@ -12,7 +11,7 @@ sealed trait Entity[K, +A] {
 
   def duplicate = new KeylessEntity[K, A](value)
 }
-case class KeylessEntity[K, +A](val value: A) extends Entity[K, A] {
+case class KeylessEntity[K, +A](value: A) extends Entity[K, A] {
   val keyOption = None
 
   final def isSaved = false
