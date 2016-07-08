@@ -7,12 +7,16 @@ val settings = Seq(
   scalacOptions ++= Seq("-deprecation", "-unchecked")
 )
 
-lazy val `slick-additions-entity` = project.settings(settings)
+lazy val `slick-additions-entity` =
+  crossProject.crossType(CrossType.Pure)
+    .settings(settings: _*)
+lazy val `slick-additions-entity-jvm` = `slick-additions-entity`.jvm
+lazy val `slick-additions-entity-js` = `slick-additions-entity`.js
 
 lazy val `slick-additions` =
   (project in file("."))
-    .dependsOn(`slick-additions-entity`)
-    .aggregate(`slick-additions-entity`)
+    .dependsOn(`slick-additions-entity-jvm`)
+    .aggregate(`slick-additions-entity-jvm`, `slick-additions-entity-js`)
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
