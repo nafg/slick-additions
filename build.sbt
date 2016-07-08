@@ -2,8 +2,8 @@ name := "slick-additions"
 
 val settings = Seq(
   organization := "io.github.nafg",
-  crossScalaVersions := Seq("2.10.5", "2.11.6"),
-  scalaVersion := "2.11.6",
+  crossScalaVersions := Seq("2.10.6", "2.11.8"),
+  scalaVersion := "2.11.8",
   scalacOptions ++= Seq("-deprecation", "-unchecked")
 )
 
@@ -16,9 +16,9 @@ lazy val `slick-additions` =
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
-        "com.typesafe.slick" %% "slick" % "3.0.0",
-        "org.scalatest" %% "scalatest" % "2.2.5" % "test",
-        "com.h2database" % "h2" % "1.4.187" % "test",
-        "ch.qos.logback" % "logback-classic" % "1.1.3" % "test"
+        "com.typesafe.slick" %% "slick" % "3.0.3",
+        "org.scalatest" %% "scalatest" % "3.0.0" % "test",
+        "com.h2database" % "h2" % "1.4.192" % "test",
+        "ch.qos.logback" % "logback-classic" % "1.1.7" % "test"
       )
     )
