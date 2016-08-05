@@ -5,6 +5,7 @@ import scala.concurrent.ExecutionContext
 import scala.language.higherKinds
 import scala.reflect.{ClassTag, classTag}
 
+import slick.additions.entity.{Entity, KeyedEntity, KeylessEntity, SavedEntity}
 import slick.ast.{MappedScalaType, Node, TypeMapping, TypedType}
 import slick.driver.JdbcDriver
 import slick.lifted._
