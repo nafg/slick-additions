@@ -103,8 +103,8 @@ trait KeyedTableComponent extends JdbcDriver {
     }
 
     object MappedProj {
-      implicit class IdentityProj[V, P : ClassTag](value: V)(implicit shape: Shape[_ <: FlatShapeLevel, V, P, _])
-        extends MappedProj[V, P, P](value, _ => identity[P], identity[P])(shape, classTag[P])
+      implicit class IdentityProj[V2, P : ClassTag](value: V2)(implicit shape: Shape[_ <: FlatShapeLevel, V2, P, _])
+        extends MappedProj[V2, P, P](value, _ => identity[P], identity[P])(shape, classTag[P])
     }
 
     def mapping: MappedProj[_, _, V]
@@ -168,10 +168,9 @@ trait KeyedTableComponent extends JdbcDriver {
           val dq = deleteQuery(items.collect { case ke: KeyedEntity[K2, V2] => ke.key })
           dq.delete
         }
-        val xs = DBIO.sequence(items map {
-          case e: Entity[K2, V2] =>
-            if(e.isSaved) DBIO.successful(e)
-            else otherTable save e
+        val xs = DBIO.sequence(items map { e: Entity[K2, V2] =>
+          if (e.isSaved) DBIO.successful(e)
+          else otherTable save e
         })
         xs.map(copy(_, isFetched = true))
       }
@@ -187,10 +186,9 @@ trait KeyedTableComponent extends JdbcDriver {
       }
 
       def deleteQuery(keep: Seq[K2]) =
-        query.filter {
-          case t: api.EntityTable[K2, V2] =>
-            implicit def tm: BaseColumnType[K2] = t.keyMapper
-            !(t.key inSet keep)
+        query.filter { t: api.EntityTable[K2, V2] =>
+          implicit def tm: BaseColumnType[K2] = t.keyMapper
+          !(t.key inSet keep)
         }
 
       def fetched(implicit ec: ExecutionContext) = query.result.map(copy(_, true))
@@ -232,7 +230,7 @@ trait KeyedTableComponent extends JdbcDriver {
       /**
        * Modify an entity value's lookup
        * relative to itself
-       * @param a the entity value
+       * @param v the entity value
        * @param f a function that transforms a lookup object
        * @return an entity value with the new lookup
        */
