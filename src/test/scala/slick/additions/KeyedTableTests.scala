@@ -1,10 +1,11 @@
 package slick.additions
 
 import slick.driver.H2Driver
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+
+import slick.additions.entity.SavedEntity
 
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
