@@ -1,15 +1,12 @@
 package slick.additions
 
-import slick.driver.H2Driver
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.Duration
 
-import slick.additions.entity.SavedEntity
+import slick.additions.entity.{EntityKey, SavedEntity}
+import slick.driver.H2Driver
 
-import org.scalatest.FunSuite
-import org.scalatest.BeforeAndAfter
-import org.scalatest.Matchers
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
 class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
   object driver extends H2Driver with KeyedTableComponent
@@ -44,7 +41,7 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
   object People extends EntTableQuery[Long, Person, People](new People(_)) {
     def setPhoneLookup: Option[People.Lookup] => Phone => Phone = lu => _.copy(person = lu)
     def phonesLookup(k: Option[Long] = None, init: Seq[Phones#Ent] = null) =
-      People.OneToMany(Phones, k map { x => People.Lookup(x) })(_.person, setPhoneLookup, init)
+      People.OneToMany(Phones, k.map(People.Lookup(_)))(_.person, setPhoneLookup, init)
 
     override val lookupLenses = List(OneToManyLens[Long, Phone, Phones](_.phones)(ps => _.copy(phones = ps)))
 
