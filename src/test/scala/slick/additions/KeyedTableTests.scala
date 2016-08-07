@@ -15,10 +15,10 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
   object driver extends H2Driver with KeyedTableComponent
   import driver.api._
 
-  case class Phone(kind: String, number: String, person: People.Lookup = People.Lookup.NotSet)
+  case class Phone(kind: String, number: String, person: Option[People.Lookup] = None)
   class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones") {
     def tableQuery = Phones
-    def person = column[People.Lookup]("personid")
+    def person = column[Option[People.Lookup]]("personid")
     def kind = column[String]("kind")
     def number = column[String]("number")
     def mapping = (kind, number, person) <-> (_ => Phone.tupled, Phone.unapply)
@@ -42,7 +42,7 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
   }
 
   object People extends EntTableQuery[Long, Person, People](new People(_)) {
-    def setPhoneLookup: People.Lookup => Phone => Phone = lu => _.copy(person = lu)
+    def setPhoneLookup: Option[People.Lookup] => Phone => Phone = lu => _.copy(person = lu)
     def phonesLookup(k: Option[Long] = None, init: Seq[Phones#Ent] = null) =
       People.OneToMany(Phones, k map { x => People.Lookup(x) })(_.person, setPhoneLookup, init)
 
@@ -131,15 +131,8 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
     import scala.concurrent.ExecutionContext.Implicits.global
     db run (for {
       id <- People.map(_.mapping) returning People.map(_.key) += Person("first1", "last1", People.phonesLookup())
-      _  <- Phones.map(_.mapping) += Phone("M", "111", People.Lookup(id))
+      _  <- Phones.map(_.mapping) += Phone("M", "111", Some(People.Lookup(id)))
       xs  <- People.filter(People.lookup(_) in Phones.map(_.person)).result
     } yield xs)
-  }
-
-  test("Lookup.NotSet.fetched does not throw an exception") {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    val phone = Phone("M", "222")
-    Await.result(db.run(phone.person()), Duration.Inf) shouldBe None
-    Await.result(db.run(phone.person.fetched), Duration.Inf) shouldBe People.Lookup.NotSet
   }
 }

@@ -25,11 +25,6 @@ trait KeyedTableComponent extends JdbcDriver {
       def apply()(implicit ec: ExecutionContext): DBIO[Option[A]] = fetched.map(_.value)
     }
     object Lookup {
-      case object NotSet extends Lookup {
-        def key = throw new NoSuchElementException("key of NotSetLookup")
-        def value = None
-        override def fetched(implicit ec: ExecutionContext) = DBIO.successful(this)
-      }
       final case class Unfetched(key: K) extends Lookup {
         def value = None
       }
@@ -120,10 +115,7 @@ trait KeyedTableComponent extends JdbcDriver {
     type Key = K
     type TableType = T
 
-    override def lookupQuery(lookup: Lookup) = lookup match {
-      case Lookup.NotSet => this.filter(_ => LiteralColumn(false))
-      case _             => this.filter(_.key === lookup.key)
-    }
+    override def lookupQuery(lookup: Lookup) = this.filter(_.key === lookup.key)
 
     val lookup: T => Rep[Lookup] = t => t.key.asColumnOf[Lookup]
 
@@ -131,8 +123,8 @@ trait KeyedTableComponent extends JdbcDriver {
       private[KeyedTableQuery] val otherTable: api.EntTableQuery[K2, V2, T2],
       private[KeyedTableQuery] val thisLookup: Option[Lookup]
     )(
-      private[KeyedTableQuery] val column: T2 => Rep[Lookup],
-      private[KeyedTableQuery] val setLookup: Lookup => V2 => V2
+      private[KeyedTableQuery] val column: T2 => Rep[Option[Lookup]],
+      private[KeyedTableQuery] val setLookup: Option[Lookup] => V2 => V2
     )(
       val items: Seq[Entity[K2, V2]] = Nil,
       val isFetched: Boolean = false
@@ -157,8 +149,8 @@ trait KeyedTableComponent extends JdbcDriver {
 
       def map(f: Seq[BEnt] => Seq[BEnt]) = copy(f(items))
 
-      def withLookup(lookup: Lookup): OneToMany[K2, V2, T2] =
-        new OneToMany[K2, V2, T2](otherTable, Some(lookup))(column, setLookup)(items map { e => e.map(setLookup(lookup)) }, isFetched)
+      def withLookup(lookup: Option[Lookup]): OneToMany[K2, V2, T2] =
+        new OneToMany[K2, V2, T2](otherTable, lookup)(column, setLookup)(items map { e => e.map(setLookup(lookup)) }, isFetched)
 
       import api.{BaseColumnType => _, _}
 
@@ -199,7 +191,7 @@ trait KeyedTableComponent extends JdbcDriver {
     def OneToMany[K2, V2, T2 <: api.EntityTable[K2, V2]](
       otherTable: api.EntTableQuery[K2, V2, T2], lookup: Option[Lookup]
     )(
-      column: T2 => Rep[Lookup], setLookup: Lookup => V2 => V2, initial: Seq[Entity[K2, V2]] = null
+      column: T2 => Rep[Option[Lookup]], setLookup: Option[Lookup] => V2 => V2, initial: Seq[Entity[K2, V2]] = null
     ): OneToMany[K2, V2, T2] = {
       val init = Option(initial)
       new OneToMany[K2, V2, T2](otherTable, lookup)(column, setLookup)(init getOrElse Nil, init.isDefined)
@@ -257,7 +249,7 @@ trait KeyedTableComponent extends JdbcDriver {
         val x = f(get(v))
         x map (set(_)(v))
       }
-      val setLookup = { key: K => o2m: OneToMany[K2, V2, T2] => o2m withLookup Lookup(key) }
+      val setLookup = { key: K => o2m: OneToMany[K2, V2, T2] => o2m withLookup Some(Lookup(key)) }
       def saved(implicit ec: ExecutionContext) = { otm: OneToMany[K2, V2, T2] => otm.saved }
     }
 
