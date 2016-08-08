@@ -25,6 +25,11 @@ sealed trait Entity[K, +A] extends EntityRef[K, A] {
   def map[B >: A](f: A => B): Entity[K, B]
 
   def duplicate = new KeylessEntity[K, A](value)
+
+  def foldEnt[X](keyless: KeylessEntity[K, A] => X, keyed: KeyedEntity[K, A] => X): X = this match {
+    case kl: KeylessEntity[K, A] => keyless(kl)
+    case ke: KeyedEntity[K, A]   => keyed(ke)
+  }
 }
 case class KeylessEntity[K, +A](value: A) extends Entity[K, A] {
   val keyOption = None
