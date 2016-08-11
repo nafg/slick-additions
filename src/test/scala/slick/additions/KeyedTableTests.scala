@@ -6,9 +6,10 @@ import scala.concurrent.{Await, ExecutionContext}
 import slick.additions.entity.SavedEntity
 import slick.driver.H2Driver
 
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
-class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
+class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter with ScalaFutures with IntegrationPatience {
   object driver extends H2Driver with KeyedTableComponent
   import driver.api._
 
@@ -76,6 +77,14 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter {
 
   after {
     Await.result(db run schema.drop, Duration.Inf)
+  }
+
+  test("EntTableQuery#insert(KeylessEntity) only inserts once [regression]") {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val phone = Phone("main", "1407124383")
+    val countAction = Phones.filter(_.number === phone.number).length.result
+    assert(db.run(countAction).futureValue == 0)
+    assert(db.run(Phones.insert(phone) >> countAction).futureValue == 1)
   }
 
   test("OneToMany") {
