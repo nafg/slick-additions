@@ -20,9 +20,9 @@ lazy val `slick-additions` =
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
-        "com.typesafe.slick" %% "slick" % "3.0.3",
-        "org.scalatest" %% "scalatest" % "3.0.0" % "test",
-        "com.h2database" % "h2" % "1.4.192" % "test",
-        "ch.qos.logback" % "logback-classic" % "1.1.7" % "test"
+        "com.typesafe.slick" %% "slick" % "3.1.1",
+        "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+        "com.h2database" % "h2" % "1.4.194" % "test",
+        "ch.qos.logback" % "logback-classic" % "1.2.2" % "test"
       )
     )

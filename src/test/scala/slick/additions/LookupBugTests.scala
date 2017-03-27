@@ -1,21 +1,21 @@
-package slick.test
+package slick.additions
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 object LookupBugTests extends App {
-  object driver extends scala.slick.driver.H2Driver
+  object driver extends slick.driver.H2Driver
   import driver.api._
   val db = Database.forURL("jdbc:h2:test0", driver = "org.h2.Driver")
 
-  implicit def mapper: BaseColumnType[Unfetched] = MappedColumnType.base[Unfetched, Long](_.key, Unfetched(_))
+  implicit def mapper: BaseColumnType[Unfetched] = MappedColumnType.base[Unfetched, Long](_.key, Unfetched)
   case class Unfetched(key: Long)
 
   case class Phone(person: Unfetched)
   class Phones(tag: Tag) extends Table[Phone](tag, "phones") {
-    def person = column[Unfetched]("personid")
-    def * = person <> (Phone.apply, Phone.unapply _)
+    def person = column[Unfetched]("person_id")
+    def * = person <> (Phone.apply, Phone.unapply)
   }
   val Phones = TableQuery[Phones]
   case class Person(name: String)
