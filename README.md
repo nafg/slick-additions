@@ -6,7 +6,7 @@
 
 | Slick version | SBT dependency                                       |
 |---------------|------------------------------------------------------|
-| 3.1.1         | `"io.github.nafg" %% "slick-additions" % "0.6.0"`    |
+| 3.1.1         | `"io.github.nafg" %% "slick-additions" % "0.6.1"`    |
 | 3.0.3         | `"io.github.nafg" %% "slick-additions" % "0.5.2"`    |
 
 Artifacts are deployed to Bintray and synchronized to JCenter, so you may need to add `resolvers += Resolver.jcenterRepo` to your build.
