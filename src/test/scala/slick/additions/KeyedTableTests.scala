@@ -9,6 +9,7 @@ import slick.driver.H2Driver
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
+
 class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter with ScalaFutures with IntegrationPatience {
   object driver extends H2Driver with KeyedTableComponent
   import driver.api._
@@ -141,5 +142,13 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter with Sc
       xs  <- People.filter(People.lookup(_) in Phones.map(_.person)).result
     } yield xs)
     res.futureValue
+  }
+
+  test("lookup.? doesn't crash") {
+    val q1 = People.map(_.lookup.?)
+  }
+
+  test("lookup.inSet with non-empty doesn't crash") {
+    People.map(_.lookup.inSet(Seq(People.Lookup(1L))))
   }
 }

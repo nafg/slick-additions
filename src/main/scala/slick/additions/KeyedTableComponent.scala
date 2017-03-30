@@ -114,8 +114,7 @@ trait KeyedTableComponent extends JdbcDriver {
 
     def * = all
 
-    def lookup(implicit lt: TypedType[Lookup[K, V]]): Rep[Lookup[K, V]] =
-      column[Lookup[K, V]](keyColumnName, keyColumnOptions: _*)
+    def lookup = LookupRep[K, V](key <> (EntityKey.apply, lookup => Some(lookup.key)))
   }
 
   class KeyedTableQueryBase[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A])) extends TableQuery[T](cons) {
@@ -206,7 +205,7 @@ trait KeyedTableComponent extends JdbcDriver {
     import api.{lookupMapper => _, _}
     override def lookupQuery(lookup: Lookup) = this.filter(_.key === lookup.key)
     override def lookupValue(a: A) = a
-    val lookup: T => Rep[Lookup] = t => t.key.asColumnOf[Lookup]
+    val lookup = (t: T) => LookupRep[K, A](t.key <> (EntityKey.apply, lookup => Some(lookup.key)))
   }
 
   class EntTableQuery[K : BaseColumnType, V, T <: EntityTable[K, V]](cons: Tag => T with EntityTable[K, V]) extends KeyedTableQueryBase[K, KeyedEntity[K, V], T](cons) with Lookups[K, V, KeyedEntity[K, V], T] {
