@@ -39,7 +39,8 @@ trait KeyedTableComponentBase {
   implicit def lookupIsomorphism[K: BaseColumnType, A]: Isomorphism[Lookup[K, A], K] =
     new Isomorphism(_.key, EntityKey(_))
 
-  trait KeyedTableBase  { keyedTable: Table[_] =>
+  trait KeyedTableBase {
+    keyedTable: Table[_] =>
     type Key
     def keyColumnName = "id"
     def keyColumnOptions = List(O.PrimaryKey, O.AutoInc)
@@ -47,32 +48,40 @@ trait KeyedTableComponentBase {
     implicit def keyMapper: TypedType[Key]
   }
 
-  abstract class KeyedTable[K, A](tag: Tag, tableName: String)(implicit val keyMapper: BaseColumnType[K]) extends Table[A](tag, tableName) with KeyedTableBase {
+  abstract class KeyedTable[K, A](tag: Tag, tableName: String)(implicit val keyMapper: BaseColumnType[K])
+    extends Table[A](tag, tableName) with KeyedTableBase {
     type Key = K
   }
 
-  trait EntityTableBase extends KeyedTableBase { this: Table[_] =>
+  trait EntityTableBase extends KeyedTableBase {
+    this: Table[_] =>
     type Value
     type Ent = Entity[Key, Value]
     type KEnt = KeyedEntity[Key, Value]
   }
 
-  abstract class EntityTable[K : BaseColumnType, V](tag: Tag, tableName: String) extends KeyedTable[K, KeyedEntity[K, V]](tag, tableName) with EntityTableBase {
+  abstract class EntityTable[K: BaseColumnType, V](tag: Tag, tableName: String)
+    extends KeyedTable[K, KeyedEntity[K, V]](tag, tableName) with EntityTableBase {
     type Value = V
     def Ent(v: Value) = new KeylessEntity[Key, Value](v)
 
     def tableQuery: Query[EntityTable[K, V], KEnt, Seq]
-
     implicit class MapProj[Value](value: Value) {
-      def <->[R : ClassTag, Unpacked](construct: Option[K] => Unpacked => R, extract: R => Option[Unpacked])(implicit shape: Shape[_ <: FlatShapeLevel, Value, Unpacked, _]): MappedProj[Value, Unpacked, R] =
+      def <->[R: ClassTag, Unpacked](construct: Option[K] => Unpacked => R, extract: R => Option[Unpacked])
+                                    (implicit shape: Shape[_ <: FlatShapeLevel, Value, Unpacked, _]): MappedProj[Value, Unpacked, R] =
         new MappedProj[Value, Unpacked, R](value, construct, extract(_).get)(shape, classTag[R])
     }
+
     implicit class MapProjShapedValue[T, U](v: ShapedValue[T, U]) {
-      def <->[R : ClassTag](construct: Option[K] => U => R, extract: R => Option[U]): MappedProj[T, U, R] =
+      def <->[R: ClassTag](construct: Option[K] => U => R, extract: R => Option[U]): MappedProj[T, U, R] =
         new MappedProj[T, U, R](v.value, construct, extract(_).get)(v.shape, classTag[R])
     }
 
-    class MappedProj[Src, Unpacked, MappedAs](val source: Src, val construct: (Option[K] => Unpacked => MappedAs), val extract: (MappedAs => Unpacked))(implicit val shape: Shape[_ <: FlatShapeLevel, Src, Unpacked, _], tag: ClassTag[MappedAs]) extends Rep[MappedAs] {
+    class MappedProj[Src, Unpacked, MappedAs](val source: Src,
+                                              val construct: (Option[K] => Unpacked => MappedAs),
+                                              val extract: (MappedAs => Unpacked))
+                                             (implicit val shape: Shape[_ <: FlatShapeLevel, Src, Unpacked, _],
+                                              tag: ClassTag[MappedAs]) extends Rep[MappedAs] {
       override def toNode: Node = TypeMapping(
         shape.toNode(source),
         MappedScalaType.Mapper(
@@ -83,9 +92,10 @@ trait KeyedTableComponentBase {
         tag
       )
 
-      def encodeRef(path: Node): MappedProj[Src, Unpacked, MappedAs] = new MappedProj[Src, Unpacked, MappedAs](source, construct, extract)(shape, tag) {
-        override def toNode = path
-      }
+      def encodeRef(path: Node): MappedProj[Src, Unpacked, MappedAs] =
+        new MappedProj[Src, Unpacked, MappedAs](source, construct, extract)(shape, tag) {
+          override def toNode = path
+        }
 
       def ~:(kc: Rep[K]): MappedProjection[KeyedEntity[K, MappedAs], (K, Unpacked)] = {
         val ksv = kc.shaped
@@ -97,7 +107,7 @@ trait KeyedTableComponentBase {
     }
 
     object MappedProj {
-      implicit class IdentityProj[V2, P : ClassTag](value: V2)(implicit shape: Shape[_ <: FlatShapeLevel, V2, P, _])
+      implicit class IdentityProj[V2, P: ClassTag](value: V2)(implicit shape: Shape[_ <: FlatShapeLevel, V2, P, _])
         extends MappedProj[V2, P, P](value, _ => identity[P], identity[P])(shape, classTag[P])
     }
 
@@ -111,20 +121,19 @@ trait KeyedTableComponentBase {
     def lookup = LookupRep[K, V](key <> (EntityKey.apply, lookup => Some(lookup.key)))
   }
 
-  class KeyedTableQueryBase[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A])) extends TableQuery[T](cons) {
+  class KeyedTableQueryBase[K: BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A]))
+    extends TableQuery[T](cons) {
+
     type Key = K
     type Lookup
 
-    class OneToMany[K2, V2, T2 <: EntityTable[K2, V2]](
-      private[KeyedTableQueryBase] val otherTable: EntTableQuery[K2, V2, T2],
-      private[KeyedTableQueryBase] val thisLookup: Option[Lookup]
-    )(
-      private[KeyedTableQueryBase] val column: T2 => Rep[Option[Lookup]],
-      private[KeyedTableQueryBase] val setLookup: Option[Lookup] => V2 => V2
-    )(
-      val items: Seq[Entity[K2, V2]] = Nil,
-      val isFetched: Boolean = false
-    )(implicit tt: BaseTypedType[Lookup]) {
+    class OneToMany[K2, V2, T2 <: EntityTable[K2, V2]](private[KeyedTableQueryBase] val otherTable: EntTableQuery[K2, V2, T2],
+                                                       private[KeyedTableQueryBase] val thisLookup: Option[Lookup])
+                                                      (private[KeyedTableQueryBase] val column: T2 => Rep[Option[Lookup]],
+                                                       private[KeyedTableQueryBase] val setLookup: Option[Lookup] => V2 => V2)
+                                                      (val items: Seq[Entity[K2, V2]] = Nil,
+                                                       val isFetched: Boolean = false)
+                                                      (implicit tt: BaseTypedType[Lookup]) {
       type BEnt = Entity[K2, V2]
 
       def values = items map (_.value)
@@ -134,10 +143,10 @@ trait KeyedTableComponentBase {
       override def equals(o: Any) = o match {
         case that: OneToMany[_, _, _] =>
           this.thisTable == that.thisTable &&
-          this.otherTable == that.otherTable &&
-          this.column(this.otherTable.baseTableRow).toNode == that.column(that.otherTable.baseTableRow).toNode &&
-          this.items.toSet == that.items.toSet
-        case _ => false
+            this.otherTable == that.otherTable &&
+            this.column(this.otherTable.baseTableRow).toNode == that.column(that.otherTable.baseTableRow).toNode &&
+            this.items.toSet == that.items.toSet
+        case _                        => false
       }
 
       def copy(items: Seq[BEnt], isFetched: Boolean = isFetched) =
@@ -146,7 +155,10 @@ trait KeyedTableComponentBase {
       def map(f: Seq[BEnt] => Seq[BEnt]) = copy(f(items))
 
       def withLookup(lookup: Option[Lookup]): OneToMany[K2, V2, T2] =
-        new OneToMany[K2, V2, T2](otherTable, lookup)(column, setLookup)(items map { e => e.map(setLookup(lookup)) }, isFetched)
+        new OneToMany[K2, V2, T2](otherTable, lookup)(column, setLookup)(
+          items map { e => e.map(setLookup(lookup)) },
+          isFetched = isFetched
+        )
 
       def saved(implicit ec: ExecutionContext): DBIO[OneToMany[K2, V2, T2]] = {
         val deleteAction =
@@ -166,7 +178,7 @@ trait KeyedTableComponentBase {
       def query: Query[T2, KeyedEntity[K2, V2], Seq] = {
         def ot = otherTable
         thisLookup match {
-          case None =>
+          case None     =>
             ot filter (_ => LiteralColumn(false))
           case Some(lu) =>
             ot filter (column(_) === lu)
@@ -179,28 +191,32 @@ trait KeyedTableComponentBase {
           !(t.key inSet keep)
         }
 
-      def fetched(implicit ec: ExecutionContext) = query.result.map(copy(_, true))
+      def fetched(implicit ec: ExecutionContext) = query.result.map(copy(_, isFetched = true))
 
       override def toString = s"${KeyedTableQueryBase.this.getClass.getSimpleName}.OneToMany($items)"
     }
 
-    def OneToMany[K2, V2, T2 <: EntityTable[K2, V2]](
-      otherTable: EntTableQuery[K2, V2, T2], lookup: Option[Lookup]
-    )(
-      column: T2 => Rep[Option[Lookup]], setLookup: Option[Lookup] => V2 => V2, initial: Seq[Entity[K2, V2]] = null
-    )(implicit tt: BaseTypedType[Lookup]): OneToMany[K2, V2, T2] = {
+    def OneToMany[K2, V2, T2 <: EntityTable[K2, V2]](otherTable: EntTableQuery[K2, V2, T2], lookup: Option[Lookup])
+                                                    (column: T2 => Rep[Option[Lookup]],
+                                                     setLookup: Option[Lookup] => V2 => V2,
+                                                     initial: Seq[Entity[K2, V2]] = null)
+                                                    (implicit tt: BaseTypedType[Lookup]): OneToMany[K2, V2, T2] = {
       val init = Option(initial)
       new OneToMany[K2, V2, T2](otherTable, lookup)(column, setLookup)(init getOrElse Nil, init.isDefined)
     }
   }
 
-  class KeyedTableQuery[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A])) extends KeyedTableQueryBase[K, A, T](cons) with Lookups[K, A, A, T] {
+  class KeyedTableQuery[K: BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A]))
+    extends KeyedTableQueryBase[K, A, T](cons) with Lookups[K, A, A, T] {
+
     override def lookupQuery(lookup: Lookup) = this.filter(_.key === lookup.key)
     override def lookupValue(a: A) = a
     val lookup = (t: T) => LookupRep[K, A](t.key <> (EntityKey.apply, lookup => Some(lookup.key)))
   }
 
-  class EntTableQuery[K : BaseColumnType, V, T <: EntityTable[K, V]](cons: Tag => T with EntityTable[K, V]) extends KeyedTableQueryBase[K, KeyedEntity[K, V], T](cons) with Lookups[K, V, KeyedEntity[K, V], T] {
+  class EntTableQuery[K: BaseColumnType, V, T <: EntityTable[K, V]](cons: Tag => T with EntityTable[K, V])
+    extends KeyedTableQueryBase[K, KeyedEntity[K, V], T](cons) with Lookups[K, V, KeyedEntity[K, V], T] {
+
     type Value = V
     type Ent = Entity[Key, Value]
     type KEnt = KeyedEntity[Key, Value]
@@ -226,6 +242,7 @@ trait KeyedTableComponentBase {
       /**
        * Modify an entity value's lookup
        * relative to itself
+       *
        * @param v the entity value
        * @param f a function that transforms a lookup object
        * @return an entity value with the new lookup
@@ -248,8 +265,11 @@ trait KeyedTableComponentBase {
       }
     }
 
-    case class OneToManyLens[K2, V2, T2 <: EntityTable[K2, V2]](get: V => OneToMany[K2, V2, T2])(val set: OneToMany[K2, V2, T2] => V => V) extends LookupLens[OneToMany[K2, V2, T2]] {
-      def apply(v: V, f: OneToMany[K2, V2, T2] => DBIO[OneToMany[K2, V2, T2]])(implicit ec: ExecutionContext): DBIO[V] = {
+    case class OneToManyLens[K2, V2, T2 <: EntityTable[K2, V2]](get: V => OneToMany[K2, V2, T2])
+                                                               (val set: OneToMany[K2, V2, T2] => V => V)
+      extends LookupLens[OneToMany[K2, V2, T2]] {
+      def apply(v: V, f: OneToMany[K2, V2, T2] => DBIO[OneToMany[K2, V2, T2]])
+               (implicit ec: ExecutionContext): DBIO[V] = {
         val x = f(get(v))
         x map (set(_)(v))
       }
@@ -257,15 +277,15 @@ trait KeyedTableComponentBase {
       def saved(implicit ec: ExecutionContext) = { otm: OneToMany[K2, V2, T2] => otm.saved }
     }
 
-
     def lookupLenses: Seq[LookupLens[_]] = Nil
 
     private def updateAndSaveLookupLenses(key: K, v: V)(implicit ec: ExecutionContext): DBIO[V] =
-      lookupLenses.foldRight(DBIO.successful(v): DBIO[V]){ (clu, v) =>
+      lookupLenses.foldRight(DBIO.successful(v): DBIO[V]) { (clu, v) =>
         v.flatMap(clu.setLookupAndSave(key, _))
       }
 
-    implicit val mappingRepShape: Shape[FlatShapeLevel, T#MappedProj[_, _, V], V, T#MappedProj[_, _, V]] = RepShape[FlatShapeLevel, T#MappedProj[_, _, V], V]
+    implicit val mappingRepShape: Shape[FlatShapeLevel, T#MappedProj[_, _, V], V, T#MappedProj[_, _, V]] =
+      RepShape[FlatShapeLevel, T#MappedProj[_, _, V], V]
 
     def forInsertQuery[E, C[_]](q: Query[T, E, C]) = q.map(_.mapping)
 
@@ -276,7 +296,7 @@ trait KeyedTableComponentBase {
       val k2 = e match {
         case ke: this.KEnt =>
           this returning this.map(_.key: Rep[Key]) forceInsert ke
-        case ent: this.Ent  =>
+        case ent: this.Ent =>
           forInsertQuery(this) returning this.map(_.key) += ent.value
       }
       // Apply the key to all child lookups (e.g., OneToMany)
@@ -310,5 +330,6 @@ trait KeyedTableComponent extends JdbcProfile {
     type KEnt[T <: EntityTableBase] = KeyedEntity[T#Key, T#Value]
     def Ent[T <: EntityTableBase](value: T#Value) = new KeylessEntity[T#Key, T#Value](value)
   }
+
   override val api: API = new API {}
 }

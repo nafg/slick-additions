@@ -2,6 +2,7 @@ package slick
 package additions
 
 import scala.reflect.ClassTag
+
 import slick.jdbc.GetResult
 import slick.relational.RelationalProfile
 
@@ -10,6 +11,7 @@ trait BitMasks {
   this: RelationalProfile =>
 
   import api._
+
 
   trait Bitmaskable[A] {
     def bitmasked: A => Bitmasked
@@ -44,7 +46,7 @@ trait BitMasks {
         def classTag = implicitly[ClassTag[E#Value]]
         type Value = E#Value
         def bitFor = _.id
-        def forBit = e apply _
+        def forBit = e.apply
         def values = e.values.toSeq
       }
     }
@@ -58,9 +60,10 @@ trait BitMasks {
    * to get an implicit `BaseTypeMapper` and `GetResult`
    * for `V` and `Set[V]`.
    */
-  trait BitmaskedEnumeration extends Bitmasked { this: Enumeration =>
+  trait BitmaskedEnumeration extends Bitmasked {
+    this: Enumeration =>
     def bitFor = _.id
-    def forBit = apply(_)
+    def forBit = apply
   }
 
   /**
@@ -68,7 +71,8 @@ trait BitMasks {
    */
   trait Enum extends Bitmasked {
     type Value <: ValueBase
-    trait ValueBase { this: Value =>
+    trait ValueBase {
+      this: Value =>
       /**
        * Convenience upcast
        */
@@ -79,9 +83,9 @@ trait BitMasks {
 
     def values = valueBits.toSeq.sortBy(_._1).map(_._2)
 
-    def bitFor: Value => Int = v => valueBits find (_._2 == v) map (_._1) getOrElse sys.error(s"No value $v in Enum $this")
+    def bitFor: Value => Int =
+      v => valueBits find (_._2 == v) map (_._1) getOrElse sys.error(s"No value $v in Enum $this")
 
     def forBit = valueBits(_)
   }
-
 }
