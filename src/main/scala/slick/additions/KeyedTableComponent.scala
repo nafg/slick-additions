@@ -158,16 +158,18 @@ trait KeyedTableComponent extends JdbcDriver {
       import api.{BaseColumnType => _, lookupMapper => _, _}
 
       def saved(implicit ec: ExecutionContext): DBIO[OneToMany[K2, V2, T2]] = {
-        //TODO
-        if(isFetched) {
-          val dq = deleteQuery(items.collect { case ke: KeyedEntity[K2, V2] => ke.key })
-          dq.delete
-        }
-        val xs = DBIO.sequence(items map { e: Entity[K2, V2] =>
+        val deleteAction =
+          if (!isFetched) DBIO.successful(())
+          else {
+            val dq = deleteQuery(items.collect { case ke: KeyedEntity[K2, V2] => ke.key })
+            dq.delete
+          }
+        val saveActions = DBIO.sequence(items map { e: Entity[K2, V2] =>
           if (e.isSaved) DBIO.successful(e)
           else otherTable save e
         })
-        xs.map(copy(_, isFetched = true))
+        (deleteAction >> saveActions)
+          .map(xs => copy(xs, isFetched = true))
       }
 
       def query: Query[T2, KeyedEntity[K2, V2], Seq] = {
