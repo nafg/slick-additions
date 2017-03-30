@@ -26,15 +26,6 @@ trait KeyedTableComponent extends JdbcDriver {
     def lookupValue(a: A): V
     type Lookup = entity.Lookup[K, V]
     object Lookup {
-      @deprecated("Use entity.EntityKey", "0.5.0")
-      type Unfetched = entity.EntityKey[K, V]
-      @deprecated("Use entity.EntityKey", "0.5.0")
-      val Unfetched = entity.EntityKey
-      @deprecated("Use entity.KeyedEntity", "0.5.0")
-      type Fetched = entity.KeyedEntity[K, V]
-      @deprecated("Use entity.SavedEntity", "0.5.0")
-      val Fetched = entity.SavedEntity
-
       def apply(key: K): Lookup = EntityKey(key)
       def apply(key: K, precache: V): Lookup = SavedEntity(key, precache)
       def apply(ke: KeyedEntity[K, V]): Lookup = ke
