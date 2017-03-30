@@ -135,10 +135,11 @@ class KeyedTableTests extends FunSuite with Matchers with BeforeAndAfter with Sc
 
   test("Using lookup in a query") {
     import scala.concurrent.ExecutionContext.Implicits.global
-    db run (for {
+    val res = db run (for {
       id <- People.map(_.mapping) returning People.map(_.key) += Person("first1", "last1", People.phonesLookup())
       _  <- Phones.map(_.mapping) += Phone("M", "111", Some(People.Lookup(id)))
       xs  <- People.filter(People.lookup(_) in Phones.map(_.person)).result
     } yield xs)
+    res.futureValue
   }
 }
