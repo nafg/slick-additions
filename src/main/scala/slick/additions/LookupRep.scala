@@ -1,7 +1,7 @@
 package slick.additions
 
 import scala.language.experimental.macros
-import scala.reflect.macros.Context
+import scala.reflect.macros.blackbox
 
 import slick.additions.entity.Lookup
 import slick.ast.{Library, LiteralNode, ProductNode, TypedType}
@@ -36,37 +36,16 @@ object LookupRep {
 }
 
 object LookupRepMacros {
-  def lookupOptMacro[K, A](c: Context): c.Expr[Rep[Option[Lookup[K, A]]]] = {
+  def lookupOptMacro[K, A](c: blackbox.Context): c.Expr[Rep[Option[Lookup[K, A]]]] = {
     import c.universe._
-    val Name = newTermName("$qmark")
-    val Select((rep, Name)) = c.macroApplication
-    c.Expr(
-      Apply(
-        Select(
-          Select(Select(Ident(newTermName("slick")), newTermName("additions")), newTermName("LookupRep")),
-          newTermName("lookupOpt")
-        ),
-        List(rep)
-      )
-    )
+    val Select((rep, TermName("$qmark"))) = c.macroApplication
+    c.Expr(q"slick.additions.LookupRep.lookupOpt($rep)")
   }
-  def lookupInSetMacro[K, A, R](c: Context)
+  def lookupInSetMacro[K, A, R](c: blackbox.Context)
                                (seq: c.Expr[Traversable[Lookup[K, A]]])
                                (om: c.Expr[O.arg[Lookup[K, A], Lookup[K, A]]#to[Boolean, R]]): c.Expr[Rep[R]] = {
     import c.universe._
-    val Name = newTermName("inSet")
-    val Apply(Apply(TypeApply(Select((rep, Name)), _), List(seq)), _) = c.macroApplication
-    c.Expr(
-      Apply(
-        Apply(
-          Select(
-            Select(Select(Ident(newTermName("slick")), newTermName("additions")), newTermName("LookupRep")),
-            newTermName("lookupInSet")
-          ),
-          List(rep)
-        ),
-        List(seq)
-      )
-    )
+    val Apply(Apply(TypeApply(Select((rep, TermName("inSet"))), _), List(seq)), _) = c.macroApplication
+    c.Expr(q"slick.additions.LookupRep.lookupInSet($rep)($seq)")
   }
 }

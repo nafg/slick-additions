@@ -7,21 +7,25 @@ import scala.reflect.{ClassTag, classTag}
 
 import slick.additions.entity._
 import slick.ast._
-import slick.driver.JdbcDriver
-import slick.lifted._
+import slick.jdbc.JdbcProfile
+import slick.lifted.{MappedProjection, RepShape, ShapedValue}
 
 
-trait KeyedTableComponent extends JdbcDriver {
+trait KeyedTableComponentBase {
+  val profile: JdbcProfile
+
+  import profile.api._
+
+
   implicit class lookupOps[K, V, A, T](self: Lookup[K, V])(implicit lookups: Lookups[K, V, A, T]) {
-    import api._
     def query: Query[T, A, Seq] = lookups.lookupQuery(self)
-    def fetched[R](implicit ec: ExecutionContext): api.DBIO[Lookup[K, V]] =
+    def fetched[R](implicit ec: ExecutionContext): DBIO[Lookup[K, V]] =
       query.result.headOption.map(_.map(a => SavedEntity(self.key, lookups.lookupValue(a))) getOrElse self)
-    def apply[R]()(implicit ec: ExecutionContext): api.DBIO[Lookup[K, V]] =
+    def apply[R]()(implicit ec: ExecutionContext): DBIO[Lookup[K, V]] =
       self.foldLookup(_ => fetched, ke => DBIO.successful(ke))
   }
+
   trait Lookups[K, V, A, T] {
-    import api.{BaseColumnType => _, MappedColumnType => _, _}
     def lookupQuery(lookup: Lookup): Query[T, A, Seq]
     def lookupValue(a: A): V
     type Lookup = entity.Lookup[K, V]
@@ -32,7 +36,8 @@ trait KeyedTableComponent extends JdbcDriver {
     }
   }
 
-  implicit def lookupMapper[K, A](implicit bctk: BaseColumnType[K]): BaseColumnType[Lookup[K, A]] = MappedColumnType.base[Lookup[K, A], K](_.key, EntityKey(_))
+  implicit def lookupIsomorphism[K: BaseColumnType, A]: Isomorphism[Lookup[K, A], K] =
+    new Isomorphism(_.key, EntityKey(_))
 
   trait KeyedTableBase  { keyedTable: Table[_] =>
     type Key
@@ -55,8 +60,6 @@ trait KeyedTableComponent extends JdbcDriver {
   abstract class EntityTable[K : BaseColumnType, V](tag: Tag, tableName: String) extends KeyedTable[K, KeyedEntity[K, V]](tag, tableName) with EntityTableBase {
     type Value = V
     def Ent(v: Value) = new KeylessEntity[Key, Value](v)
-
-    import api.{EntityTable => _, _}
 
     def tableQuery: Query[EntityTable[K, V], KEnt, Seq]
 
@@ -84,9 +87,9 @@ trait KeyedTableComponent extends JdbcDriver {
         override def toNode = path
       }
 
-      def ~:(kc: Rep[K])(implicit kShape: Shape[_ <: FlatShapeLevel, Rep[K], K, _]): MappedProjection[KeyedEntity[K, MappedAs], (K, Unpacked)] = {
-        val ksv = new ToShapedValue(kc).shaped
-        val ssv: ShapedValue[Src, Unpacked] = new ToShapedValue(source).shaped
+      def ~:(kc: Rep[K]): MappedProjection[KeyedEntity[K, MappedAs], (K, Unpacked)] = {
+        val ksv = kc.shaped
+        val ssv: ShapedValue[Src, Unpacked] = source.shaped
         (ksv zip ssv).<>[KeyedEntity[K, MappedAs]](
           { case (k, v) => SavedEntity(k, construct(Some(k))(v)): KeyedEntity[K, MappedAs] },
           ke => Some((ke.key, extract(ke.value))))
@@ -109,12 +112,11 @@ trait KeyedTableComponent extends JdbcDriver {
   }
 
   class KeyedTableQueryBase[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A])) extends TableQuery[T](cons) {
-    import api.{BaseColumnType => _, MappedColumnType => _, lookupMapper => _, _}
     type Key = K
     type Lookup
 
-    class OneToMany[K2, V2, T2 <: api.EntityTable[K2, V2]](
-      private[KeyedTableQueryBase] val otherTable: api.EntTableQuery[K2, V2, T2],
+    class OneToMany[K2, V2, T2 <: EntityTable[K2, V2]](
+      private[KeyedTableQueryBase] val otherTable: EntTableQuery[K2, V2, T2],
       private[KeyedTableQueryBase] val thisLookup: Option[Lookup]
     )(
       private[KeyedTableQueryBase] val column: T2 => Rep[Option[Lookup]],
@@ -146,8 +148,6 @@ trait KeyedTableComponent extends JdbcDriver {
       def withLookup(lookup: Option[Lookup]): OneToMany[K2, V2, T2] =
         new OneToMany[K2, V2, T2](otherTable, lookup)(column, setLookup)(items map { e => e.map(setLookup(lookup)) }, isFetched)
 
-      import api.{BaseColumnType => _, lookupMapper => _, _}
-
       def saved(implicit ec: ExecutionContext): DBIO[OneToMany[K2, V2, T2]] = {
         val deleteAction =
           if (!isFetched) DBIO.successful(())
@@ -174,7 +174,7 @@ trait KeyedTableComponent extends JdbcDriver {
       }
 
       def deleteQuery(keep: Seq[K2]) =
-        query.filter { t: api.EntityTable[K2, V2] =>
+        query.filter { t: EntityTable[K2, V2] =>
           implicit def tm: BaseColumnType[K2] = t.keyMapper
           !(t.key inSet keep)
         }
@@ -184,8 +184,8 @@ trait KeyedTableComponent extends JdbcDriver {
       override def toString = s"${KeyedTableQueryBase.this.getClass.getSimpleName}.OneToMany($items)"
     }
 
-    def OneToMany[K2, V2, T2 <: api.EntityTable[K2, V2]](
-      otherTable: api.EntTableQuery[K2, V2, T2], lookup: Option[Lookup]
+    def OneToMany[K2, V2, T2 <: EntityTable[K2, V2]](
+      otherTable: EntTableQuery[K2, V2, T2], lookup: Option[Lookup]
     )(
       column: T2 => Rep[Option[Lookup]], setLookup: Option[Lookup] => V2 => V2, initial: Seq[Entity[K2, V2]] = null
     )(implicit tt: BaseTypedType[Lookup]): OneToMany[K2, V2, T2] = {
@@ -195,14 +195,12 @@ trait KeyedTableComponent extends JdbcDriver {
   }
 
   class KeyedTableQuery[K : BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A])) extends KeyedTableQueryBase[K, A, T](cons) with Lookups[K, A, A, T] {
-    import api.{lookupMapper => _, _}
     override def lookupQuery(lookup: Lookup) = this.filter(_.key === lookup.key)
     override def lookupValue(a: A) = a
     val lookup = (t: T) => LookupRep[K, A](t.key <> (EntityKey.apply, lookup => Some(lookup.key)))
   }
 
   class EntTableQuery[K : BaseColumnType, V, T <: EntityTable[K, V]](cons: Tag => T with EntityTable[K, V]) extends KeyedTableQueryBase[K, KeyedEntity[K, V], T](cons) with Lookups[K, V, KeyedEntity[K, V], T] {
-    import api.{BaseColumnType => _, MappedColumnType => _, lookupMapper => _, _}
     type Value = V
     type Ent = Entity[Key, Value]
     type KEnt = KeyedEntity[Key, Value]
@@ -210,7 +208,7 @@ trait KeyedTableComponent extends JdbcDriver {
 
     override def lookupQuery(lookup: Lookup) = this.filter(_.key === lookup.key)
     override def lookupValue(a: KeyedEntity[K, V]) = a.value
-    val lookup: T => Rep[Lookup] = _.lookup
+    def lookup: T => Rep[Lookup] = _.lookup
 
     trait LookupLens[L] {
       /**
@@ -250,7 +248,7 @@ trait KeyedTableComponent extends JdbcDriver {
       }
     }
 
-    case class OneToManyLens[K2, V2, T2 <: api.EntityTable[K2, V2]](get: V => OneToMany[K2, V2, T2])(val set: OneToMany[K2, V2, T2] => V => V) extends LookupLens[OneToMany[K2, V2, T2]] {
+    case class OneToManyLens[K2, V2, T2 <: EntityTable[K2, V2]](get: V => OneToMany[K2, V2, T2])(val set: OneToMany[K2, V2, T2] => V => V) extends LookupLens[OneToMany[K2, V2, T2]] {
       def apply(v: V, f: OneToMany[K2, V2, T2] => DBIO[OneToMany[K2, V2, T2]])(implicit ec: ExecutionContext): DBIO[V] = {
         val x = f(get(v))
         x map (set(_)(v))
@@ -300,22 +298,17 @@ trait KeyedTableComponent extends JdbcDriver {
       }
     }
     def delete(ke: KEnt)(implicit ec: ExecutionContext) = {
-      import api._
       this.filter(_.key === ke.key).delete
     }
   }
+}
 
-  trait API extends super.API {
-    type KeyedTable[K, A] = KeyedTableComponent.this.KeyedTable[K, A]
-    type EntityTable[K, A] = KeyedTableComponent.this.EntityTable[K, A]
+trait KeyedTableComponent extends JdbcProfile {
+  trait API extends super.API with KeyedTableComponentBase {
+    override val profile = KeyedTableComponent.this
     type Ent[T <: EntityTableBase] = Entity[T#Key, T#Value]
     type KEnt[T <: EntityTableBase] = KeyedEntity[T#Key, T#Value]
     def Ent[T <: EntityTableBase](value: T#Value) = new KeylessEntity[T#Key, T#Value](value)
-    type Lookups[K, V, A, T] = KeyedTableComponent.this.Lookups[K, V, A, T]
-    type KeyedTableQuery[K, A, T <: KeyedTable[K, A]] = KeyedTableComponent.this.KeyedTableQuery[K, A, T]
-    type EntTableQuery[K, V, T <: EntityTable[K, V]] = KeyedTableComponent.this.EntTableQuery[K, V, T]
-    implicit def lookupMapper[K : BaseColumnType, A]: BaseColumnType[Lookup[K, A]] = KeyedTableComponent.this.lookupMapper[K, A]
-    implicit def lookupOps[K, V, A, T](self: Lookup[K, V])(implicit lookups: Lookups[K, V, A, T]): lookupOps[K, V, A, T] = KeyedTableComponent.this.lookupOps[K, V, A, T](self)(lookups)
   }
   override val api: API = new API {}
 }

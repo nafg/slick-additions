@@ -1,13 +1,13 @@
 package slick.additions.test
 
 import slick.additions.KeyedTableComponent
-import slick.driver.H2Driver
+import slick.jdbc.H2Profile
 
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfter, Suite}
 
 
-object driver extends H2Driver with KeyedTableComponent
+object driver extends H2Profile with KeyedTableComponent
 
 
 trait TestsCommon extends BeforeAndAfter with ScalaFutures {

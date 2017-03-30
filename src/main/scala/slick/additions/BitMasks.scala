@@ -3,9 +3,12 @@ package additions
 
 import scala.reflect.ClassTag
 import slick.jdbc.GetResult
-import slick.profile.RelationalProfile
+import slick.relational.RelationalProfile
 
-trait BitMasks { this: RelationalProfile =>
+
+trait BitMasks {
+  this: RelationalProfile =>
+
   import api._
 
   trait Bitmaskable[A] {
