@@ -20,5 +20,8 @@ deploy:
   api_key:
     secure: cYScxiXTyYJVezETupF6E9HJ0LDcNXPOTjb8gKWrwad92LR5taGM4/6knzaWNzw75/TwP3jhAZV1G7bzuyNPbUAsw/mqACRA6CkWu/XzrPYfX6NvHPCQJMOlvj1tC7kICO7FAQzUE0RoxTpPSlIVPxt8EHOrvDzatEWhVLGbTEc=
   file: target/scala-*/*.jar
+  file_glob: true
+  skip_cleanup: true
   on:
     repo: nafg/slick-additions
+    tags: true
