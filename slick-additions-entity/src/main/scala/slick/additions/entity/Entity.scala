@@ -49,6 +49,7 @@ sealed trait KeyedEntity[K, +A] extends Entity[K, A] with Lookup[K, A] {
   override def map[B >: A](f: A => B): ModifiedEntity[K, B] = ModifiedEntity[K, B](key, f(value))
 }
 object KeyedEntity {
+  def apply[K, A](key: K, value: A): KeyedEntity[K, A] = SavedEntity[K, A](key, value)
   def unapply[K, A](ke: KeyedEntity[K, A]): Option[(K, A)] = Some((ke.key, ke.value))
 }
 case class SavedEntity[K, +A](key: K, value: A) extends KeyedEntity[K, A] {

@@ -101,7 +101,7 @@ trait KeyedTableComponentBase {
         val ksv = kc.shaped
         val ssv: ShapedValue[Src, Unpacked] = source.shaped
         (ksv zip ssv).<>[KeyedEntity[K, MappedAs]](
-          { case (k, v) => SavedEntity(k, construct(Some(k))(v)): KeyedEntity[K, MappedAs] },
+          { case (k, v) => KeyedEntity(k, construct(Some(k))(v)) },
           ke => Some((ke.key, extract(ke.value))))
       }
     }
