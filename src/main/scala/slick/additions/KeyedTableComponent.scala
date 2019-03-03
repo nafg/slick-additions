@@ -211,7 +211,6 @@ trait KeyedTableComponentBase {
 
     override def lookupQuery(lookup: Lookup) = this.filter(_.key === lookup.key)
     override def lookupValue(a: A) = a
-    val lookup = (t: T) => LookupRep[K, A](t.key <> (EntityKey.apply, lookup => Some(lookup.key)))
   }
 
   class EntTableQuery[K: BaseColumnType, V, T <: EntityTable[K, V]](cons: Tag => T with EntityTable[K, V])
