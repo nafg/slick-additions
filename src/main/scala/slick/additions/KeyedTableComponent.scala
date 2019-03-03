@@ -78,8 +78,8 @@ trait KeyedTableComponentBase {
     }
 
     class MappedProj[Src, Unpacked, MappedAs](val source: Src,
-                                              val construct: (Option[K] => Unpacked => MappedAs),
-                                              val extract: (MappedAs => Unpacked))
+                                              val construct: Option[K] => Unpacked => MappedAs,
+                                              val extract: MappedAs => Unpacked)
                                              (implicit val shape: Shape[_ <: FlatShapeLevel, Src, Unpacked, _],
                                               tag: ClassTag[MappedAs]) extends Rep[MappedAs] {
       override def toNode: Node = TypeMapping(

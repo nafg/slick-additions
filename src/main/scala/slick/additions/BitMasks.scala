@@ -32,9 +32,10 @@ trait BitMasks {
 
     def setToLong: Set[Value] => Long = _.foldLeft(0L) { (bm, v) => bm + (1L << bitFor(v)) }
 
-    implicit val enumTypeMapper = MappedColumnType.base[Value, Int](bitFor, forBit)
+    implicit val enumTypeMapper: BaseColumnType[Value] = MappedColumnType.base[Value, Int](bitFor, forBit)
 
-    implicit lazy val enumSetTypeMapper = MappedColumnType.base[Set[Value], Long](setToLong, longToSet)
+    implicit lazy val enumSetTypeMapper: BaseColumnType[Set[Value]] =
+      MappedColumnType.base[Set[Value], Long](setToLong, longToSet)
 
     implicit lazy val getResult: GetResult[Value] = GetResult(r => forBit(r.nextInt))
     implicit lazy val getSetResult: GetResult[Set[Value]] = GetResult(r => longToSet(r.nextLong))

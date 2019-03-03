@@ -14,7 +14,7 @@ class OneToManyTests extends FunSuite with Matchers with TestsCommon with ScalaF
   case class Phone(kind: String, number: String, person: Option[People.Lookup] = None)
   class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones") {
     def tableQuery = Phones
-    def person = column[Option[People.Lookup]]("personid")
+    def person = column[Option[People.Lookup]]("person_id")
     def kind = column[String]("kind")
     def number = column[String]("number")
     def mapping = (kind, number, person) <-> (_ => Phone.tupled, Phone.unapply)

@@ -13,7 +13,7 @@ class KeyedTableTests extends FunSuite with Matchers with TestsCommon with Integ
   case class Phone(kind: String, number: String, person: Option[People.Lookup] = None)
   class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones") {
     def tableQuery = Phones
-    def person = column[Option[People.Lookup]]("personid")
+    def person = column[Option[People.Lookup]]("person_id")
     def kind = column[String]("kind")
     def number = column[String]("number")
     def mapping = (kind, number, person) <-> (_ => Phone.tupled, Phone.unapply)
@@ -27,7 +27,7 @@ class KeyedTableTests extends FunSuite with Matchers with TestsCommon with Integ
     def first = column[String]("first")
     def last = column[String]("last")
 
-    def mapping = (first, last) <-> (k => Person.tupled, Person.unapply)
+    def mapping = (first, last) <-> (_ => Person.tupled, Person.unapply)
   }
 
   object People extends EntTableQuery[Long, Person, People](new People(_))
