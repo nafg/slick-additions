@@ -144,7 +144,6 @@ trait KeyedTableComponentBase {
 
     override def lookupQuery(lookup: Lookup) = this.filter(_.key === lookup.key)
     override def lookupValue(a: KeyedEntity[K, V]) = a.value
-    def lookup: T => Rep[Lookup] = _.lookup
 
     implicit val mappingRepShape: Shape[FlatShapeLevel, T#MappedProj[_, _, V], V, T#MappedProj[_, _, V]] =
       RepShape[FlatShapeLevel, T#MappedProj[_, _, V], V]
