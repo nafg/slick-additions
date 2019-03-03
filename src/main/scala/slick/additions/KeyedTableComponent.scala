@@ -123,87 +123,8 @@ trait KeyedTableComponentBase {
 
   class KeyedTableQueryBase[K: BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A]))
     extends TableQuery[T](cons) {
-
     type Key = K
     type Lookup
-
-    class OneToMany[K2, V2, T2 <: EntityTable[K2, V2]](private[KeyedTableQueryBase] val otherTable: EntTableQuery[K2, V2, T2],
-                                                       private[KeyedTableQueryBase] val thisLookup: Option[Lookup])
-                                                      (private[KeyedTableQueryBase] val column: T2 => Rep[Option[Lookup]],
-                                                       private[KeyedTableQueryBase] val setLookup: Option[Lookup] => V2 => V2)
-                                                      (val items: Seq[Entity[K2, V2]] = Nil,
-                                                       val isFetched: Boolean = false)
-                                                      (implicit tt: BaseTypedType[Lookup]) {
-      type BEnt = Entity[K2, V2]
-
-      def values = items map (_.value)
-
-      private def thisTable = KeyedTableQueryBase.this
-
-      override def equals(o: Any) = o match {
-        case that: OneToMany[_, _, _] =>
-          this.thisTable == that.thisTable &&
-            this.otherTable == that.otherTable &&
-            this.column(this.otherTable.baseTableRow).toNode == that.column(that.otherTable.baseTableRow).toNode &&
-            this.items.toSet == that.items.toSet
-        case _                        => false
-      }
-
-      def copy(items: Seq[BEnt], isFetched: Boolean = isFetched) =
-        new OneToMany[K2, V2, T2](otherTable, thisLookup)(column, setLookup)(items, isFetched)
-
-      def map(f: Seq[BEnt] => Seq[BEnt]) = copy(f(items))
-
-      def withLookup(lookup: Option[Lookup]): OneToMany[K2, V2, T2] =
-        new OneToMany[K2, V2, T2](otherTable, lookup)(column, setLookup)(
-          items map { e => e.map(setLookup(lookup)) },
-          isFetched = isFetched
-        )
-
-      def saved(implicit ec: ExecutionContext): DBIO[OneToMany[K2, V2, T2]] = {
-        val deleteAction =
-          if (!isFetched) DBIO.successful(())
-          else {
-            val dq = deleteQuery(items.collect { case ke: KeyedEntity[K2, V2] => ke.key })
-            dq.delete
-          }
-        val saveActions = DBIO.sequence(items map { e: Entity[K2, V2] =>
-          if (e.isSaved) DBIO.successful(e)
-          else otherTable save e
-        })
-        (deleteAction >> saveActions)
-          .map(xs => copy(xs, isFetched = true))
-      }
-
-      def query: Query[T2, KeyedEntity[K2, V2], Seq] = {
-        def ot = otherTable
-        thisLookup match {
-          case None     =>
-            ot filter (_ => LiteralColumn(false))
-          case Some(lu) =>
-            ot filter (column(_) === lu)
-        }
-      }
-
-      def deleteQuery(keep: Seq[K2]) =
-        query.filter { t: EntityTable[K2, V2] =>
-          implicit def tm: BaseColumnType[K2] = t.keyMapper
-          !(t.key inSet keep)
-        }
-
-      def fetched(implicit ec: ExecutionContext) = query.result.map(copy(_, isFetched = true))
-
-      override def toString = s"${KeyedTableQueryBase.this.getClass.getSimpleName}.OneToMany($items)"
-    }
-
-    def OneToMany[K2, V2, T2 <: EntityTable[K2, V2]](otherTable: EntTableQuery[K2, V2, T2], lookup: Option[Lookup])
-                                                    (column: T2 => Rep[Option[Lookup]],
-                                                     setLookup: Option[Lookup] => V2 => V2,
-                                                     initial: Seq[Entity[K2, V2]] = null)
-                                                    (implicit tt: BaseTypedType[Lookup]): OneToMany[K2, V2, T2] = {
-      val init = Option(initial)
-      new OneToMany[K2, V2, T2](otherTable, lookup)(column, setLookup)(init getOrElse Nil, init.isDefined)
-    }
   }
 
   class KeyedTableQuery[K: BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A]))
@@ -225,64 +146,6 @@ trait KeyedTableComponentBase {
     override def lookupValue(a: KeyedEntity[K, V]) = a.value
     def lookup: T => Rep[Lookup] = _.lookup
 
-    trait LookupLens[L] {
-      /**
-       * Get the field on an entity value that
-       * serves as the foreign key lookup
-       * for the other table
-       */
-      def get: V => L
-      /**
-       * Set an entity value's lookup
-       * object, returning a new, modified
-       * entity value
-       */
-      def set: L => V => V
-      /**
-       * Modify an entity value's lookup
-       * relative to itself
-       *
-       * @param v the entity value
-       * @param f a function that transforms a lookup object
-       * @return an entity value with the new lookup
-       */
-      def apply(v: V, f: L => DBIO[L])(implicit ec: ExecutionContext): DBIO[V]
-      /**
-       * Create a lookup object transformer that
-       * synchronizes the lookup object to the database
-       * (which may generate new keys)
-       */
-      def saved(implicit ec: ExecutionContext): L => DBIO[L]
-      /**
-       * Set the lookup object's key
-       */
-      def setLookup: K => L => L
-
-      def setLookupAndSave(key: K, v: V)(implicit ec: ExecutionContext) = {
-        // val withLookup: L => L = setLookup(key)
-        apply(v, setLookup(key) andThen saved)
-      }
-    }
-
-    case class OneToManyLens[K2, V2, T2 <: EntityTable[K2, V2]](get: V => OneToMany[K2, V2, T2])
-                                                               (val set: OneToMany[K2, V2, T2] => V => V)
-      extends LookupLens[OneToMany[K2, V2, T2]] {
-      def apply(v: V, f: OneToMany[K2, V2, T2] => DBIO[OneToMany[K2, V2, T2]])
-               (implicit ec: ExecutionContext): DBIO[V] = {
-        val x = f(get(v))
-        x map (set(_)(v))
-      }
-      val setLookup = { key: K => o2m: OneToMany[K2, V2, T2] => o2m withLookup Some(EntityKey(key)) }
-      def saved(implicit ec: ExecutionContext) = { otm: OneToMany[K2, V2, T2] => otm.saved }
-    }
-
-    def lookupLenses: Seq[LookupLens[_]] = Nil
-
-    private def updateAndSaveLookupLenses(key: K, v: V)(implicit ec: ExecutionContext): DBIO[V] =
-      lookupLenses.foldRight(DBIO.successful(v): DBIO[V]) { (clu, v) =>
-        v.flatMap(clu.setLookupAndSave(key, _))
-      }
-
     implicit val mappingRepShape: Shape[FlatShapeLevel, T#MappedProj[_, _, V], V, T#MappedProj[_, _, V]] =
       RepShape[FlatShapeLevel, T#MappedProj[_, _, V], V]
 
@@ -292,33 +155,26 @@ trait KeyedTableComponentBase {
 
     def insert(e: Ent)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] = {
       // Insert it and get the new or old key
-      val k2 = e match {
+      val action = e match {
         case ke: this.KEnt =>
           this returning this.map(_.key: Rep[Key]) forceInsert ke
         case ent: this.Ent =>
-          forInsertQuery(this) returning this.map(_.key) += ent.value
+          forInsertQuery(this).returning(this.map(_.key)) += ent.value
       }
-      // Apply the key to all child lookups (e.g., OneToMany)
-      for {
-        k <- k2
-        v <- updateAndSaveLookupLenses(k, e.value)
-      } yield SavedEntity(k, v)
+      action.map(SavedEntity(_, e.value))
     }
     def update(ke: KEnt)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] =
-      for {
-        _ <- forInsertQuery(this.filter(_.key === ke.key)) update ke.value
-        v <- updateAndSaveLookupLenses(ke.key, ke.value)
-      } yield SavedEntity(ke.key, v)
+      forInsertQuery(lookupQuery(ke)).update(ke.value)
+        .map(_ => SavedEntity(ke.key, ke.value))
 
-    def save(e: Entity[K, V])(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] = {
+    def save(e: Entity[K, V])(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] =
       e match {
         case ke: KEnt => update(ke)
         case ke: Ent  => insert(ke)
       }
-    }
-    def delete(ke: KEnt)(implicit ec: ExecutionContext) = {
-      this.filter(_.key === ke.key).delete
-    }
+
+    def delete(ke: KEnt)(implicit ec: ExecutionContext) =
+      lookupQuery(ke).delete
   }
 }
 
