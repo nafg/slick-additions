@@ -25,16 +25,6 @@ trait KeyedTableComponentBase {
       self.foldLookup(_ => fetched, ke => DBIO.successful(ke))
   }
 
-  trait Lookups[K, V, A, T] {
-    def lookupQuery(lookup: Lookup): Query[T, A, Seq]
-    def lookupValue(a: A): V
-    type Lookup = entity.Lookup[K, V]
-    object Lookup {
-      def apply(key: K): Lookup = EntityKey(key)
-      def apply(key: K, precache: V): Lookup = SavedEntity(key, precache)
-      def apply(ke: KeyedEntity[K, V]): Lookup = ke
-    }
-  }
 
   implicit def lookupIsomorphism[K: BaseColumnType, A]: Isomorphism[Lookup[K, A], K] =
     new Isomorphism(_.key, EntityKey(_))
