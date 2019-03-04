@@ -17,15 +17,6 @@ trait KeyedTableComponentBase {
   import profile.api._
 
 
-  implicit class lookupOps[K, V, A, T](self: Lookup[K, V])(implicit lookups: Lookups[K, V, A, T]) {
-    def query: Query[T, A, Seq] = lookups.lookupQuery(self)
-    def fetched[R](implicit ec: ExecutionContext): DBIO[Lookup[K, V]] =
-      query.result.headOption.map(_.map(a => SavedEntity(self.key, lookups.lookupValue(a))) getOrElse self)
-    def apply[R]()(implicit ec: ExecutionContext): DBIO[Lookup[K, V]] =
-      self.foldLookup(_ => fetched, ke => DBIO.successful(ke))
-  }
-
-
   implicit def lookupIsomorphism[K: BaseColumnType, A]: Isomorphism[Lookup[K, A], K] =
     new Isomorphism(_.key, EntityKey(_))
 
