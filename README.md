@@ -6,6 +6,7 @@
 
 | Slick version | SBT dependency                                       |
 |---------------|------------------------------------------------------|
+| 3.3.0         | `"io.github.nafg" %% "slick-additions" % "0.8.0"`    |
 | 3.2.1         | `"io.github.nafg" %% "slick-additions" % "0.7.2"`    |
 | 3.2.0         | `"io.github.nafg" %% "slick-additions" % "0.7.0"`    |
 | 3.1.1         | `"io.github.nafg" %% "slick-additions" % "0.6.1"`    |
