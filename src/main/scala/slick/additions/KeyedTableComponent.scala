@@ -3,12 +3,11 @@ package additions
 
 import scala.concurrent.ExecutionContext
 import scala.language.{higherKinds, implicitConversions}
-import scala.reflect.{ClassTag, classTag}
 
 import slick.additions.entity._
 import slick.ast._
 import slick.jdbc.JdbcProfile
-import slick.lifted.{MappedProjection, RepShape, ShapedValue}
+import slick.lifted.{MappedProjection, RepShape}
 
 
 trait KeyedTableComponentBase {
@@ -47,55 +46,11 @@ trait KeyedTableComponentBase {
     def Ent(v: Value) = new KeylessEntity[Key, Value](v)
 
     def tableQuery: Query[EntityTable[K, V], KEnt, Seq]
-    implicit class MapProj[Value](value: Value) {
-      def <->[R: ClassTag, Unpacked](construct: Option[K] => Unpacked => R, extract: R => Option[Unpacked])
-                                    (implicit shape: Shape[_ <: FlatShapeLevel, Value, Unpacked, _]): MappedProj[Value, Unpacked, R] =
-        new MappedProj[Value, Unpacked, R](value, construct, extract(_).get)(shape, classTag[R])
-    }
 
-    implicit class MapProjShapedValue[T, U](v: ShapedValue[T, U]) {
-      def <->[R: ClassTag](construct: Option[K] => U => R, extract: R => Option[U]): MappedProj[T, U, R] =
-        new MappedProj[T, U, R](v.value, construct, extract(_).get)(v.shape, classTag[R])
-    }
+    def mapping: MappedProjection[V, _]
 
-    class MappedProj[Src, Unpacked, MappedAs](val source: Src,
-                                              val construct: Option[K] => Unpacked => MappedAs,
-                                              val extract: MappedAs => Unpacked)
-                                             (implicit val shape: Shape[_ <: FlatShapeLevel, Src, Unpacked, _],
-                                              tag: ClassTag[MappedAs]) extends Rep[MappedAs] {
-      override def toNode: Node = TypeMapping(
-        shape.toNode(source),
-        MappedScalaType.Mapper(
-          v => extract(v.asInstanceOf[MappedAs]),
-          v => construct(None)(v.asInstanceOf[Unpacked]),
-          None
-        ),
-        tag
-      )
-
-      def encodeRef(path: Node): MappedProj[Src, Unpacked, MappedAs] =
-        new MappedProj[Src, Unpacked, MappedAs](source, construct, extract)(shape, tag) {
-          override def toNode = path
-        }
-
-      def ~:(kc: Rep[K]): MappedProjection[KeyedEntity[K, MappedAs], (K, Unpacked)] = {
-        val ksv = kc.shaped
-        val ssv: ShapedValue[Src, Unpacked] = source.shaped
-        (ksv zip ssv).<>[KeyedEntity[K, MappedAs]](
-          { case (k, v) => KeyedEntity(k, construct(Some(k))(v)) },
-          ke => Some((ke.key, extract(ke.value))))
-      }
-    }
-
-    object MappedProj {
-      implicit class IdentityProj[V2, P: ClassTag](value: V2)(implicit shape: Shape[_ <: FlatShapeLevel, V2, P, _])
-        extends MappedProj[V2, P, P](value, _ => identity[P], identity[P])(shape, classTag[P])
-    }
-
-    def mapping: MappedProj[_, _, V]
-
-    private def all: MappedProjection[KeyedEntity[K, V], _ <: (K, _)] =
-      key ~: mapping
+    private def all: MappedProjection[KeyedEntity[K, V], (K, V)] =
+      (key, mapping) <> ((KeyedEntity.apply[K, V] _).tupled, KeyedEntity.unapply[K, V] _)
 
     def * = all
 
@@ -126,8 +81,8 @@ trait KeyedTableComponentBase {
     override def lookupQuery(lookup: Lookup) = this.filter(_.key === lookup.key)
     override def lookupValue(a: KeyedEntity[K, V]) = a.value
 
-    implicit val mappingRepShape: Shape[FlatShapeLevel, T#MappedProj[_, _, V], V, T#MappedProj[_, _, V]] =
-      RepShape[FlatShapeLevel, T#MappedProj[_, _, V], V]
+    implicit val mappingRepShape: Shape[FlatShapeLevel, MappedProjection[V, _], V, MappedProjection[V, _]] =
+      RepShape[FlatShapeLevel, MappedProjection[V, _], V]
 
     def forInsertQuery[E, C[_]](q: Query[T, E, C]) = q.map(_.mapping)
 
