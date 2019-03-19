@@ -22,7 +22,7 @@ lazy val `slick-additions` =
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
         "com.typesafe.slick" %% "slick" % "3.3.0",
-        "org.scalatest" %% "scalatest" % "3.0.6" % "test",
+        "org.scalatest" %% "scalatest" % "3.0.7" % "test",
         "com.h2database" % "h2" % "1.4.199" % "test",
         "ch.qos.logback" % "logback-classic" % "1.2.3" % "test"
       )
