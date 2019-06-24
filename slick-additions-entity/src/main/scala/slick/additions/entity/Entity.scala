@@ -22,6 +22,10 @@ sealed trait Entity[K, +A] extends EntityRef[K, A] {
 
   def isSaved: Boolean
 
+  def transform[B](f: A => B): Entity[K, B]
+  def modify[B](f: A => B): Entity[K, B]
+
+  @deprecated("Use modify", "0.9.1")
   def map[B >: A](f: A => B): Entity[K, B]
 
   def duplicate = new KeylessEntity[K, A](value)
@@ -32,13 +36,15 @@ sealed trait Entity[K, +A] extends EntityRef[K, A] {
   }
 }
 case class KeylessEntity[K, +A](value: A) extends Entity[K, A] {
-  val keyOption = None
+  override val keyOption = None
 
-  final def isSaved = false
+  final override def isSaved = false
 
   override def equals(that: Any) = this eq that.asInstanceOf[AnyRef]
 
-  def map[B >: A](f: A => B): KeylessEntity[K, B] = new KeylessEntity[K, B](f(value))
+  override def transform[B](f: A => B): KeylessEntity[K, B] = new KeylessEntity[K, B](f(value))
+  override def modify[B](f: A => B) = transform(f)
+  final override def map[B >: A](f: A => B): KeylessEntity[K, B] = modify(f)
 
   override def toString = s"KeylessEntity($value)"
 }
@@ -46,15 +52,21 @@ case class KeylessEntity[K, +A](value: A) extends Entity[K, A] {
 sealed trait KeyedEntity[K, +A] extends Entity[K, A] with Lookup[K, A] {
   override def keyOption = Some(key)
 
-  override def map[B >: A](f: A => B): ModifiedEntity[K, B] = ModifiedEntity[K, B](key, f(value))
+  override def modify[B](f: A => B): ModifiedEntity[K, B] = ModifiedEntity[K, B](key, f(value))
+  final override def map[B >: A](f: A => B): ModifiedEntity[K, B] = modify(f)
+
+  def toSaved: SavedEntity[K, A] = SavedEntity(key, value)
+  def asLookup: Lookup[K, A] = this
 }
 object KeyedEntity {
   def apply[K, A](key: K, value: A): KeyedEntity[K, A] = SavedEntity[K, A](key, value)
   def unapply[K, A](ke: KeyedEntity[K, A]): Option[(K, A)] = Some((ke.key, ke.value))
 }
 case class SavedEntity[K, +A](key: K, value: A) extends KeyedEntity[K, A] {
-  final def isSaved = true
+  final override def isSaved = true
+  override def transform[B](f: A => B) = SavedEntity(key, f(value))
 }
 case class ModifiedEntity[K, +A](key: K, value: A) extends KeyedEntity[K, A] {
-  final def isSaved = false
+  final override def isSaved = false
+  override def transform[B](f: A => B) = ModifiedEntity(key, f(value))
 }

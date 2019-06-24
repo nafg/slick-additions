@@ -14,7 +14,7 @@ import slick.util.ConstArray
   */
 sealed trait LookupRep[K, A] {
   def ? : Rep[Option[Lookup[K, A]]] = macro LookupRepMacros.lookupOptMacro[K, A]
-  def inSet[R](seq: Traversable[Lookup[K, A]])
+  def inSet[R](seq: Iterable[Lookup[K, A]])
               (implicit om: O.arg[Lookup[K, A], Lookup[K, A]]#to[Boolean, R]): Rep[R] = macro LookupRepMacros.lookupInSetMacro[K, A, R]
 }
 
@@ -24,7 +24,7 @@ object LookupRep {
     Rep.Some(rep)
 
   def lookupInSet[K, A, R](rep: Rep[Lookup[K, A]])
-                          (seq: Traversable[Lookup[K, A]])
+                          (seq: Iterable[Lookup[K, A]])
                           (implicit om: O.arg[Lookup[K, A], Lookup[K, A]]#to[Boolean, R],
                            boolType: TypedType[Boolean],
                            lookupType: TypedType[Lookup[K, A]]): Rep[R] =
@@ -42,7 +42,7 @@ object LookupRepMacros {
     c.Expr(q"slick.additions.LookupRep.lookupOpt($rep)")
   }
   def lookupInSetMacro[K, A, R](c: blackbox.Context)
-                               (seq: c.Expr[Traversable[Lookup[K, A]]])
+                               (seq: c.Expr[Iterable[Lookup[K, A]]])
                                (om: c.Expr[O.arg[Lookup[K, A], Lookup[K, A]]#to[Boolean, R]]): c.Expr[Rep[R]] = {
     import c.universe._
     val Apply(Apply(TypeApply(Select((rep, TermName("inSet"))), _), List(seq)), _) = c.macroApplication
