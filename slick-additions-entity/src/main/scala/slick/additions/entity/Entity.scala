@@ -52,6 +52,7 @@ case class KeylessEntity[K, +A](value: A) extends Entity[K, A] {
 sealed trait KeyedEntity[K, +A] extends Entity[K, A] with Lookup[K, A] {
   override def keyOption = Some(key)
 
+  override def transform[B](f: A => B): KeyedEntity[K, B]
   override def modify[B](f: A => B): ModifiedEntity[K, B] = ModifiedEntity[K, B](key, f(value))
   final override def map[B >: A](f: A => B): ModifiedEntity[K, B] = modify(f)
 
