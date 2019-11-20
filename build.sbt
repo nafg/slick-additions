@@ -2,7 +2,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
 name := "slick-additions"
 
-ThisBuild / crossScalaVersions := Seq("2.12.8", "2.13.0")
+ThisBuild / crossScalaVersions := Seq("2.12.8", "2.13.1")
 ThisBuild / scalaVersion := (ThisBuild / crossScalaVersions).value.last
 
 val settings = Seq(
