@@ -6,10 +6,11 @@ import slick.additions.test.TestsCommon
 import slick.additions.test.driver.api._
 
 import org.scalatest.concurrent.IntegrationPatience
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 
-class KeyedTableTests extends FunSuite with Matchers with TestsCommon with IntegrationPatience {
+class KeyedTableTests extends AnyFunSuite with Matchers with TestsCommon with IntegrationPatience {
   case class Phone(kind: String, number: String, person: Option[People.Lookup] = None)
   class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones") {
     def tableQuery = Phones
