@@ -141,5 +141,35 @@ trait AdditionsProfile { this: JdbcProfile =>
     trait AutoNameSnakify extends AutoName { this: Table[_] =>
       protected implicit def nameStyle: NameStyle = NameStyle.Snakify
     }
+
+    trait TableModule {
+      type Rec
+      type Row <: Table[Rec]
+      val Q: TableQuery[Row]
+    }
+
+    abstract class EntityTableModule[K: BaseColumnType, V](tableName: String) extends TableModule {
+      type Rec = KeyedEntity[K, V]
+
+      abstract class BaseEntRow(tag: Tag) extends EntityTable[K, V](tag, tableName) with AutoNameSnakify {
+        def tableQuery = EntityTableModule.this.Q
+      }
+
+      type Row <: BaseEntRow
+
+      val mkRow: Tag => Row = {
+        import scala.reflect.runtime.universe._
+        val m = runtimeMirror(this.getClass.getClassLoader)
+        val thisAsSymbol = m.moduleSymbol(this.getClass)
+        val rowClassMirror = m.reflectClass(thisAsSymbol.info.member(TypeName("Row")).asClass)
+        val ctor = rowClassMirror.reflectConstructor(rowClassMirror.symbol.primaryConstructor.asMethod)
+
+        tag => ctor.apply(tag).asInstanceOf[Row]
+      }
+
+      class TableQuery extends EntTableQuery[K, V, Row](mkRow)
+
+      val Q: TableQuery = new TableQuery
+    }
   }
 }
