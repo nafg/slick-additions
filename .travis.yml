@@ -1,27 +1,31 @@
 sudo: false
+
 language: scala
+
 jdk:
   - openjdk8
+
 cache:
   directories:
   - $HOME/.ivy2
   - $HOME/.sbt
-script:
-  - sbt +clean coverage +test coverageReport &&
-    sbt coverageAggregate
-after_success:
-  - sbt coveralls
-  - sbt +clean +package +publish
+
 env:
   global:
     secure: APrQBWcOM2kkihTSSPIEiPEAIiM1Gi1HLNK6Sz/cBtRttXVnMUr7CHU9hbPKtJP94iYmc3gZKY5YjZVG7oKh1B3hUx7booHMPS0fyaC0bxUwRLSWIrav+c2cTzwYvoKz4smS81njrq+i4F/g/+05jqsiwSu7bpjiueiXjROXLZk=
-deploy:
-  provider: releases
-  api_key:
-    secure: cYScxiXTyYJVezETupF6E9HJ0LDcNXPOTjb8gKWrwad92LR5taGM4/6knzaWNzw75/TwP3jhAZV1G7bzuyNPbUAsw/mqACRA6CkWu/XzrPYfX6NvHPCQJMOlvj1tC7kICO7FAQzUE0RoxTpPSlIVPxt8EHOrvDzatEWhVLGbTEc=
-  file: target/scala-*/*.jar
-  file_glob: true
-  skip_cleanup: true
-  on:
-    repo: nafg/slick-additions
-    tags: true
+
+jobs:
+  include:
+    - script: "sbt +clean coverage +test coverageReport && sbt coverageAggregate && sbt coveralls"
+      after_success: "sbt coveralls"
+    - stage: publish
+      name: Publish
+      if: tag IS present
+      script: "sbt +clean +package +publish"
+      deploy:
+        provider: releases
+        api_key:
+          secure: cYScxiXTyYJVezETupF6E9HJ0LDcNXPOTjb8gKWrwad92LR5taGM4/6knzaWNzw75/TwP3jhAZV1G7bzuyNPbUAsw/mqACRA6CkWu/XzrPYfX6NvHPCQJMOlvj1tC7kICO7FAQzUE0RoxTpPSlIVPxt8EHOrvDzatEWhVLGbTEc=
+        file: target/scala-*/*.jar
+        file_glob: true
+        skip_cleanup: true
