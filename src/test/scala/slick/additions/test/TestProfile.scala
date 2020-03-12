@@ -1,11 +1,11 @@
 package slick.additions.test
 
-import slick.additions.KeyedTableProfile
+import slick.additions.AdditionsProfile
 import slick.jdbc.H2Profile
 
 
-trait TestProfile extends H2Profile with KeyedTableProfile {
-  object _api extends KeyedTableApi with API
+trait TestProfile extends H2Profile with AdditionsProfile {
+  object _api extends AdditionsApi with API
   override val api = _api
 }
 

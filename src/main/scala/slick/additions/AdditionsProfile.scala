@@ -7,11 +7,13 @@ import scala.language.{higherKinds, implicitConversions}
 import slick.additions.entity._
 import slick.ast._
 import slick.jdbc.JdbcProfile
-import slick.lifted.{MappedProjection, RepShape}
+import slick.lifted.{AbstractTable, ForeignKeyQuery, MappedProjection, RepShape}
+
+import sourcecode.Name
 
 
-trait KeyedTableProfile { this: JdbcProfile =>
-  trait KeyedTableApi { this: API =>
+trait AdditionsProfile { this: JdbcProfile =>
+  trait AdditionsApi { this: API =>
     implicit def lookupBaseColumnType[K: BaseColumnType, A]: BaseColumnType[Lookup[K, A]] =
       MappedColumnType.base[Lookup[K, A], K](_.key, EntityKey(_))
 
@@ -108,6 +110,36 @@ trait KeyedTableProfile { this: JdbcProfile =>
 
       def delete(ke: KEnt)(implicit ec: ExecutionContext) =
         lookupQuery(ke).delete
+    }
+
+    trait AutoName { this: Table[_] =>
+      def col[A: TypedType](options: ColumnOption[A]*)(implicit name: Name, dbNameStyle: NameStyle) =
+        column[A](dbNameStyle.identToDb(name.value), options: _*)
+
+      def col[A: TypedType](implicit name: Name, dbNameStyle: NameStyle) =
+        column[A](dbNameStyle.columnName(name.value))
+
+      def foreign[P, PU, TT <: AbstractTable[_], U](sourceColumns: P, targetTableQuery: TableQuery[TT])
+                                                   (targetColumns: TT => P,
+                                                    onUpdate: ForeignKeyAction = ForeignKeyAction.NoAction,
+                                                    onDelete: ForeignKeyAction = ForeignKeyAction.NoAction)
+                                                   (implicit unpackT: Shape[_ <: FlatShapeLevel, TT, U, _],
+                                                    unpackP: Shape[_ <: FlatShapeLevel, P, PU, _],
+                                                    name: Name,
+                                                    dbNameStyle: NameStyle): ForeignKeyQuery[TT, U] =
+        foreignKey(dbNameStyle.foreignKeyName(tableName, name.value), sourceColumns, targetTableQuery)(
+          targetColumns,
+          onUpdate,
+          onDelete
+        )
+
+      def idx[A](on: A, unique: Boolean = false)
+                (implicit shape: Shape[_ <: FlatShapeLevel, A, _, _], name: Name, dbNameStyle: NameStyle) =
+        index(dbNameStyle.indexName(tableName, name.value), on, unique = unique)
+    }
+
+    trait AutoNameSnakify extends AutoName { this: Table[_] =>
+      protected implicit def nameStyle: NameStyle = NameStyle.Snakify
     }
   }
 }
