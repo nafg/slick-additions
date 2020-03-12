@@ -16,8 +16,8 @@ trait KeyedTableComponentBase {
   import profile.api._
 
 
-  implicit def lookupIsomorphism[K: BaseColumnType, A]: Isomorphism[Lookup[K, A], K] =
-    new Isomorphism(_.key, EntityKey(_))
+  implicit def lookupBaseColumnType[K: BaseColumnType, A]: BaseColumnType[Lookup[K, A]] =
+    MappedColumnType.base[Lookup[K, A], K](_.key, EntityKey(_))
 
   trait KeyedTableBase {
     keyedTable: Table[_] =>
