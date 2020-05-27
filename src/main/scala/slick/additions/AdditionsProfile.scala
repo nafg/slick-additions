@@ -157,13 +157,20 @@ trait AdditionsProfile { this: JdbcProfile =>
 
       type Row <: BaseEntRow
 
-      val mkRow: Tag => Row = {
-        import scala.reflect.runtime.universe._
+      import scala.reflect.runtime.universe._
+
+
+      protected def rowClassMirror: ClassMirror = {
         val m = runtimeMirror(this.getClass.getClassLoader)
         val thisAsSymbol = m.moduleSymbol(this.getClass)
-        val rowClassMirror = m.reflectClass(thisAsSymbol.info.member(TypeName("Row")).asClass)
-        val ctor = rowClassMirror.reflectConstructor(rowClassMirror.symbol.primaryConstructor.asMethod)
+        m.reflectClass(thisAsSymbol.info.member(TypeName("Row")).asClass)
+      }
 
+      protected def rowConstructorMirror: MethodMirror =
+        rowClassMirror.reflectConstructor(rowClassMirror.symbol.primaryConstructor.asMethod)
+
+      protected def mkRow: Tag => Row = {
+        val ctor = rowConstructorMirror
         tag => ctor.apply(tag).asInstanceOf[Row]
       }
 
