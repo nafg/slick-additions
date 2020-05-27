@@ -10,6 +10,7 @@ sealed trait Lookup[K, +A] extends EntityRef[K, A] {
     case ke: KeyedEntity[K, A] => ent(ke)
   }
   def valueOption: Option[A] = foldLookup(_ => None, ke => Some(ke.value))
+  def sameKey(that: Lookup[K, _]) = this.key == that.key
 }
 
 case class EntityKey[K, +A](key: K) extends Lookup[K, A]
