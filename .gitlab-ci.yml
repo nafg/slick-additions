@@ -1,0 +1,52 @@
+variables:
+  COURSIER_CACHE: cache/.coursier
+
+image: nafg/docker-sbt
+
+before_script:
+  - shopt -s expand_aliases
+  - alias sbt='sbt -v -sbt-dir cache/.sbt/launchers -sbt-boot cache/.sbt/boot -ivy cache/.ivy2'
+
+cache:
+  key: default
+  paths:
+    - cache
+
+stages:
+  - build
+  - publish
+
+.build:
+  stage: build
+  script: sbt +test
+
+.publish:
+  stage: publish
+  only:
+    - tags
+  script: sbt +publish
+
+.sjs0.6:
+  variables:
+    SCALAJS_VERSION: "0.6.33"
+
+.sjs1:
+  variables:
+    SCALAJS_VERSION: "1.1.1"
+
+build / scala.js 0.6:
+  extends:
+    - .build
+    - .sjs0.6
+build / scala.js 1:
+  extends:
+    - .build
+    - .sjs1
+publish / scala.js 0.6:
+  extends:
+    - .publish
+    - .sjs0.6
+publish / scala.js 1:
+  extends:
+    - .publish
+    - .sjs1
