@@ -19,12 +19,11 @@ env:
 
 jobs:
   include:
-    - script: "sbt +clean coverage +test coverageReport && sbt coverageAggregate && sbt coveralls"
-      after_success: "sbt coveralls"
+    - script: "sbt +test"
     - stage: publish
       name: Publish
       if: tag IS present
-      script: "sbt +clean +package +publish"
+      script: "sbt +package +publish"
       deploy:
         provider: releases
         api_key:
