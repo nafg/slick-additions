@@ -1,5 +1,3 @@
-sudo: false
-
 language: scala
 
 jdk:
@@ -11,8 +9,6 @@ cache:
   - $HOME/.sbt
 
 env:
-  global:
-    secure: APrQBWcOM2kkihTSSPIEiPEAIiM1Gi1HLNK6Sz/cBtRttXVnMUr7CHU9hbPKtJP94iYmc3gZKY5YjZVG7oKh1B3hUx7booHMPS0fyaC0bxUwRLSWIrav+c2cTzwYvoKz4smS81njrq+i4F/g/+05jqsiwSu7bpjiueiXjROXLZk=
   jobs:
     - SCALAJS_VERSION=0.6.33
     - SCALAJS_VERSION=1.1.1
@@ -23,7 +19,9 @@ jobs:
     - stage: publish
       name: Publish
       if: tag IS present
-      script: "sbt +package +publish"
+      env:
+        secure: APrQBWcOM2kkihTSSPIEiPEAIiM1Gi1HLNK6Sz/cBtRttXVnMUr7CHU9hbPKtJP94iYmc3gZKY5YjZVG7oKh1B3hUx7booHMPS0fyaC0bxUwRLSWIrav+c2cTzwYvoKz4smS81njrq+i4F/g/+05jqsiwSu7bpjiueiXjROXLZk=
+      script: "sbt +publish"
       deploy:
         provider: releases
         api_key:
