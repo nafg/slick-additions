@@ -9,9 +9,8 @@ cache:
   - $HOME/.sbt
 
 env:
-  jobs:
-    - SCALAJS_VERSION=0.6.33
-    - SCALAJS_VERSION=1.1.1
+  - SCALAJS_VERSION=0.6.33
+  - SCALAJS_VERSION=1.1.1
 
 jobs:
   include:
