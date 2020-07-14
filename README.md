@@ -6,7 +6,7 @@
 
 | Slick version | Slick-additions version | SBT dependency                                       | Supported scala versions
 |---------------|-------------------------|------------------------------------------------------|--------------------------
-| 3.3.2         | 0.10.1                  | `"io.github.nafg" %% "slick-additions" % "0.10.1"`   | 2.12, 2.13
+| 3.3.2         | 0.10.2                  | `"io.github.nafg" %% "slick-additions" % "0.10.1"`   | 2.12, 2.13
 | 3.3.0         | 0.8.0                   | `"io.github.nafg" %% "slick-additions" % "0.8.0"`    | 2.11, 2.12
 | 3.2.1         | 0.7.2                   | `"io.github.nafg" %% "slick-additions" % "0.7.2"`    | 2.11, 2.12
 | 3.2.0         | 0.7.0                   | `"io.github.nafg" %% "slick-additions" % "0.7.0"`    | 2.11, 2.12
