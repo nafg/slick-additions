@@ -19,6 +19,14 @@ stages:
 .build:
   stage: build
   script: sbt +test
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - target
+      - project/project
+      - "*/target"
+      - "*/.jvm/target"
+      - "*/.js/target"
 
 .publish:
   stage: publish
@@ -35,18 +43,13 @@ stages:
     SCALAJS_VERSION: "1.1.1"
 
 build / scala.js 0.6:
-  extends:
-    - .build
-    - .sjs0.6
+  extends: [.build, .sjs0.6]
 build / scala.js 1:
-  extends:
-    - .build
-    - .sjs1
+  extends: [.build, .sjs1]
+
 publish / scala.js 0.6:
-  extends:
-    - .publish
-    - .sjs0.6
+  extends: [.publish, .sjs0.6]
+  needs: ["build / scala.js 0.6"]
 publish / scala.js 1:
-  extends:
-    - .publish
-    - .sjs1
+  extends: [.publish, .sjs1]
+  needs: ["build / scala.js 1"]
