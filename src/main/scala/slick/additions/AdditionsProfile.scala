@@ -50,11 +50,11 @@ trait AdditionsProfile { this: JdbcProfile =>
       def mapping: MappedProjection[V, _]
 
       private def all: MappedProjection[KeyedEntity[K, V], (K, V)] =
-        (key, mapping) <> ((KeyedEntity.apply[K, V] _).tupled, KeyedEntity.unapply[K, V] _)
+        (key, mapping).<>((KeyedEntity.apply[K, V] _).tupled, KeyedEntity.unapply[K, V] _)
 
       def * = all
 
-      def lookup = LookupRep[K, V](key <> (EntityKey.apply, lookup => Some(lookup.key)))
+      def lookup = LookupRep[K, V](key.<>(EntityKey.apply, lookup => Some(lookup.key)))
     }
 
     class KeyedTableQueryBase[K: BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A]))
