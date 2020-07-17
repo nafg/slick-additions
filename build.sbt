@@ -4,21 +4,31 @@ name := "slick-additions"
 
 ThisBuild / crossScalaVersions := Seq("2.12.12", "2.13.3")
 ThisBuild / scalaVersion := (ThisBuild / crossScalaVersions).value.last
+ThisBuild / organization := "io.github.nafg"
+ThisBuild / scalacOptions ++= Seq("-deprecation", "-unchecked")
 
-val settings = Seq(
-  organization := "io.github.nafg",
-  scalacOptions ++= Seq("-deprecation", "-unchecked")
+val githubUrl = url("https://github.com/nafg/slick-additions")
+
+ThisBuild / scmInfo := Some(
+  ScmInfo(
+    browseUrl = githubUrl,
+    connection = "scm:git:git@github.com/nafg/slick-additions.git"
+  )
 )
+
+ThisBuild / homepage := Some(githubUrl)
+
+ThisBuild / developers +=
+  Developer("nafg", "Naftoli Gugenheim", "98384+nafg@users.noreply.github.com", url("https://github.com/nafg"))
 
 lazy val `slick-additions-entity` =
   crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Pure)
-    .settings(settings: _*)
+    .settings()
 
 lazy val `slick-additions` =
   (project in file("."))
     .dependsOn(`slick-additions-entity`.jvm)
     .aggregate(`slick-additions-entity`.jvm, `slick-additions-entity`.js)
-    .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
