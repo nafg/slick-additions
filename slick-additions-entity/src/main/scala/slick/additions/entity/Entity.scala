@@ -71,7 +71,7 @@ sealed trait KeyedEntity[K, +A] extends Entity[K, A] with Lookup[K, A] {
 
   def toSaved: SavedEntity[K, A] = SavedEntity(key, value)
   def asLookup: Lookup[K, A] = this
-  override def toEntityKey = EntityKey(key)
+  override def toEntityKey: EntityKey[K, A] = EntityKey(key)
 }
 object KeyedEntity {
   def apply[K, A](key: K, value: A): KeyedEntity[K, A] = SavedEntity[K, A](key, value)
