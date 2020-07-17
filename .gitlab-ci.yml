@@ -8,7 +8,7 @@ before_script:
   - alias sbt='sbt -v -sbt-dir cache/.sbt/launchers -sbt-boot cache/.sbt/boot -ivy cache/.ivy2'
 
 cache:
-  key: default
+  key: "$CI_JOB_NAME"
   paths:
     - cache
 
@@ -42,14 +42,14 @@ stages:
   variables:
     SCALAJS_VERSION: "1.1.1"
 
-build / scala.js 0.6:
+build:sjs0.6:
   extends: [.build, .sjs0.6]
-build / scala.js 1:
+build:sjs1:
   extends: [.build, .sjs1]
 
-publish / scala.js 0.6:
+publish:sjs0.6:
   extends: [.publish, .sjs0.6]
-  needs: ["build / scala.js 0.6"]
-publish / scala.js 1:
+  needs: ["build:sjs0.6"]
+publish:sjs1:
   extends: [.publish, .sjs1]
-  needs: ["build / scala.js 1"]
+  needs: ["build:sjs1"]
