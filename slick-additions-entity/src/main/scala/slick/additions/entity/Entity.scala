@@ -40,9 +40,6 @@ sealed trait Entity[K, +A] extends EntityRef[K, A] {
   override def widen[B >: A]: Entity[K, B]
   def modify[B](f: A => B): Entity[K, B]
 
-  @deprecated("Use modify", "0.9.1")
-  def map[B >: A](f: A => B): Entity[K, B]
-
   def duplicate = new KeylessEntity[K, A](value)
 
   def foldEnt[X](keyless: KeylessEntity[K, A] => X, keyed: KeyedEntity[K, A] => X): X = this match {
@@ -61,7 +58,6 @@ case class KeylessEntity[K, +A](override val value: A) extends Entity[K, A] {
   override def updated[B](value: B): KeylessEntity[K, B] = copy(value = value)
   override def widen[B >: A]: KeylessEntity[K, B] = transform(identity)
   override def modify[B](f: A => B) = transform(f)
-  final override def map[B >: A](f: A => B): KeylessEntity[K, B] = modify(f)
 
   override def toString = s"KeylessEntity($value)"
 }
@@ -73,7 +69,6 @@ sealed trait KeyedEntity[K, +A] extends Entity[K, A] with Lookup[K, A] {
   override def widen[B >: A]: KeyedEntity[K, B]
   override def modify[B](f: A => B): ModifiedEntity[K, B] = ModifiedEntity[K, B](key, f(value))
   override def updated[B](value: B): ModifiedEntity[K, B] = ModifiedEntity(key, value)
-  final override def map[B >: A](f: A => B): ModifiedEntity[K, B] = modify(f)
 
   def toSaved: SavedEntity[K, A] = SavedEntity(key, value)
   def asLookup: Lookup[K, A] = this
