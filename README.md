@@ -145,3 +145,40 @@ object People extends EntTableQuery[Long, Person, People](new People(_))
 #### `KeyedTable` / `KeyedTableQuery`
 
 Useful for abstracting over tables that have a separate primary key column.
+
+
+### `slick-additions-codegen`
+
+Alternative code generator, based on Scalameta. Pretty incomplete but very
+easy to extend, in your own codebase or by sending a PR.
+
+Example usage:
+
+```scala
+import com.typesafe.config.ConfigFactory
+import slick.jdbc.meta._
+import slick.additions.codegen._
+
+trait MyCodegenRulesBase extends EntityGenerationRules {
+  override def includeTable(table: MTable) =
+    table.name.schema.forall(_ == "public") && table.name.name != "flyway_schema_history"
+}
+
+object MyModelsCodeGenRules extends MyCodegenRulesBase {
+  override def packageName = "myapp.models"
+  override def container = "models"
+  override def extraImports = "myapp.JsonCodecs._" :: super.extraImports
+}
+object MyTablesCodeGenRules extends MyCodegenGenRulesBase {
+  override def packageName = "myapp.tables"
+  override def container = "Tables"
+  override def extraImports = "myapp.models._" :: "myapp.SlickColumnMappings._" :: super.extraImports
+}
+
+object MyModelsCodeGenerator extends KeylessModelsCodeGenerator with CirceJsonCodecModelsCodeGenerator
+object MyTablesCodeGenerator extends EntityTableModulesCodeGenerator
+
+val slickConfig = ConfigFactory.load().getConfig("slick.dbs.default")
+MyModelsCodeGenerator.doWriteToFile(baseDir, slickConfig, MyModelsCodeGenRules)
+MyTablesCodeGenerator.doWriteToFile(baseDir, slickConfig, MyTablesCodeGenRules)
+```
