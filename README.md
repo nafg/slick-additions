@@ -1,18 +1,19 @@
 # Slick Additions
 
-## Helpers for Scala Slick (https://scala-slick.org)
+## Helpers for [Scala Slick](https://scala-slick.org)
 
 Note: Artifacts are deployed to Bintray and synchronized to JCenter,
 so you may need to add `ThisBuild / useJCenter := true` to your build.
 
 
 ### `slick-additions-entity`
+[![javadoc](https://javadoc.io/badge2/io.github.nafg/slick-additions-entity_2.13/javadoc.svg)](https://javadoc.io/doc/io.github.nafg/slick-additions-entity_2.13)
 
-This project actually does not depend on Slick.
+This module actually does not depend on Slick.
 
 ```scala
-libraryDependencies += "io.github.nafg" %% "slick-additions-entity" % "0.10.3"
-libraryDependencies += "io.github.nafg" %%% "slick-additions-entity" % "0.10.3"  // for Scala.js
+libraryDependencies += "io.github.nafg" %% "slick-additions-entity" % "0.11.0"
+libraryDependencies += "io.github.nafg" %%% "slick-additions-entity" % "0.11.0"  // for Scala.js
 ```
 
 It defines abstractions to separate unsafe, low-level database implementation details from your models.
@@ -33,7 +34,7 @@ code need either the ID or the data and consider the other one optional.
 We define an ADT / type hierarchy that allows you to be as concrete or abstract about this as appropriate, while
 remaining fully typesafe. All types are parameterized by `K`, the key type, and `A`, the value type.
 
-![EntityRef subclass hierarchy](http://www.plantuml.com/plantuml/svg/ZO-zJWCn48HxFuMLcaU8eg08cW05q26A9PvJhFZdjBj6vEqvOOwiT4NeFAkPRyPRKM9jEJaNYu87Ei3V5OrwViRWIVpgJxtjR_pj-yglryeKTRCnaOTQJstyyVVdmkpnfIX1BdHtI2IptkDisYOr0-POnovMcj3_AoTyWeWXs8kjDd5JFRaHJDheQoD-5ppM48S82x6dvOPUOH4lz0cRx_fgs1rZWC_87s3fGXICgkSHpiafbf6OiWyOg2MzhqMVACFlQkC8DWuPg-wEn9U_lZgtdHfRJkuR "Class hierarchy diagram")
+![EntityRef subclass hierarchy](http://www.plantuml.com/plantuml/proxy?cache=no&fmt=svg&src=https://raw.github.com/nafg/slick-additions/master/EntityRef-hierarchy.plantuml "Class hierarchy diagram")
 
  * `EntityRef`: the common base trait, not very useful on its own
  * `Lookup`: has a key, may or may not have a value.
@@ -67,9 +68,11 @@ If you need to make a change that shouldn't clear its "saved" status, use `trans
 
 
 ### `slick-additions`
+[![javadoc](https://javadoc.io/badge2/io.github.nafg/slick-additions_2.13/javadoc.svg)](https://javadoc.io/doc/io.github.nafg/slick-additions_2.13)
+
 ```scala
-// In your build
-libraryDependencies += "io.github.nafg" %% "slick-additions" % "0.10.3"
+// In build.sbt
+libraryDependencies += "io.github.nafg" %% "slick-additions" % "0.11.0"
 
 // In your codebase, use a custom Profile. For example:
 import slick.jdbc._
@@ -148,6 +151,7 @@ Useful for abstracting over tables that have a separate primary key column.
 
 
 ### `slick-additions-codegen`
+[![javadoc](https://javadoc.io/badge2/io.github.nafg/slick-additions-codegen_2.13/javadoc.svg)](https://javadoc.io/doc/io.github.nafg/slick-additions-codegen_2.13)
 
 Alternative code generator, based on Scalameta. Pretty incomplete but very
 easy to extend, in your own codebase or by sending a PR.
@@ -155,6 +159,10 @@ easy to extend, in your own codebase or by sending a PR.
 Example usage:
 
 ```scala
+// In build.sbt
+libraryDependencies += "io.github.nafg" %% "slick-additions-codegen" % "0.11.0"
+
+
 import com.typesafe.config.ConfigFactory
 import slick.jdbc.meta._
 import slick.additions.codegen._
