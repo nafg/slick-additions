@@ -1,0 +1,18 @@
+@startuml
+
+interface EntityRef as "EntityRef[K, A]" <<trait>>
+interface Lookup as "Lookup[K, A]" <<trait>> extends EntityRef
+class EntityKey as "EntityKey[K, A]" extends Lookup
+interface Entity as "Entity[K, A]" <<trait>> extends EntityRef
+class KeylessEntity as "KeylessEntity[K, A]" extends Entity
+interface KeyedEntity as "KeyedEntity[K, A]" <<trait>> extends Entity
+class ModifiedEntity as "ModifiedEntity[K, A]" extends KeyedEntity
+class SavedEntity as "SavedEntity[K, A]" extends KeyedEntity
+
+hide members
+hide stereotype
+
+skinparam defaultFontName Courier
+skinparam spotChar<<trait>> T
+
+@enduml
