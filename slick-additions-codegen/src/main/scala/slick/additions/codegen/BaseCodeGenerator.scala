@@ -58,6 +58,7 @@ trait BaseCodeGenerator {
     val code =
       try Await.result(db.run(codeString(rules, slickConfig.getString("profile"))), Duration.Inf)
       finally db.close()
+    Files.createDirectories(path.getParent)
     Files.write(path, code.getBytes())
   }
 }
