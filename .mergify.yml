@@ -2,7 +2,7 @@ pull_request_rules:
   - name: automatic merge successful scala-steward PRs
     conditions:
       - author=scala-steward
-      - status-success=ci/gitlab/gitlab.com
+      - status-success=Continuous Integration
     actions:
       merge:
         method: merge
