@@ -8,6 +8,10 @@ ThisBuild / scalaVersion := (ThisBuild / crossScalaVersions).value.last
 ThisBuild / organization := "io.github.nafg"
 ThisBuild / scalacOptions ++= Seq("-deprecation", "-unchecked")
 
+ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
+ThisBuild / githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v")))
+ThisBuild / githubWorkflowEnv ++= List("BINTRAYKEY").map(envKey => envKey -> s"$${{ secrets.$envKey }}").toMap
+
 val githubUrl = url("https://github.com/nafg/slick-additions")
 
 ThisBuild / scmInfo := Some(
