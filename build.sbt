@@ -3,7 +3,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
 name := "slick-additions"
 
-ThisBuild / crossScalaVersions := Seq("2.12.13", "2.13.3")
+ThisBuild / crossScalaVersions := Seq("2.12.13", "2.13.5")
 ThisBuild / scalaVersion := (ThisBuild / crossScalaVersions).value.last
 ThisBuild / organization := "io.github.nafg"
 ThisBuild / scalacOptions ++= Seq("-deprecation", "-unchecked")
@@ -38,8 +38,8 @@ lazy val `slick-additions` =
       libraryDependencies ++= Seq(
         "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
         "com.typesafe.slick" %% "slick" % "3.3.3",
-        "com.lihaoyi" %% "sourcecode" % "0.2.3",
-        "org.scalatest" %% "scalatest" % "3.2.4" % "test",
+        "com.lihaoyi" %% "sourcecode" % "0.2.4",
+        "org.scalatest" %% "scalatest" % "3.2.6" % "test",
         "com.h2database" % "h2" % "1.4.200" % "test",
         "ch.qos.logback" % "logback-classic" % "1.2.3" % "test"
       )
