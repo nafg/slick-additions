@@ -9,9 +9,9 @@ name: Continuous Integration
 
 on:
   pull_request:
-    branches: ['*']
+    branches: ['**']
   push:
-    branches: ['*']
+    branches: ['**']
     tags: [v*]
 
 env:
@@ -51,10 +51,10 @@ jobs:
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
 
       - name: Check that workflows are up to date
-        run: sbt ++${{ matrix.scala }} githubWorkflowCheck
+        run: sbt --client '++${{ matrix.scala }}; githubWorkflowCheck'
 
       - name: Build project
-        run: sbt ++${{ matrix.scala }} test
+        run: sbt --client '++${{ matrix.scala }}; test'
 
       - name: Compress target directories
         run: tar cf targets.tar target slick-additions-entity/.jvm/target slick-additions-entity/.js/target slick-additions-codegen/target project/target
@@ -119,4 +119,4 @@ jobs:
           rm targets.tar
 
       - name: Publish project
-        run: sbt ++${{ matrix.scala }} +publish
+        run: sbt --client '++${{ matrix.scala }}; +publish'
