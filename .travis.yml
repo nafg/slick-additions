@@ -10,7 +10,7 @@ cache:
 
 env:
   - SCALAJS_VERSION=0.6.33
-  - SCALAJS_VERSION=1.5.1
+  - SCALAJS_VERSION=1.6.0
 
 jobs:
   include:
