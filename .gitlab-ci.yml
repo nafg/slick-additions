@@ -40,7 +40,7 @@ stages:
 
 .sjs1:
   variables:
-    SCALAJS_VERSION: "1.7.0"
+    SCALAJS_VERSION: "1.7.1"
 
 build:sjs0.6:
   extends: [.build, .sjs0.6]
