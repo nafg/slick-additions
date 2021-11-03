@@ -4,7 +4,7 @@ pull_request_rules:
     conditions:
       - author=scala-steward
       - check-success=Build and Test (ubuntu-latest, 2.12.15, adopt@1.8)
-      - check-success=Build and Test (ubuntu-latest, 2.13.6, adopt@1.8)
+      - check-success=Build and Test (ubuntu-latest, 2.13.7, adopt@1.8)
     actions:
         merge:
             strict: true
