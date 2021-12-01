@@ -3,8 +3,8 @@ pull_request_rules:
   - name: Automatically merge successful scala-steward PRs
     conditions:
       - author=scala-steward
-      - check-success=Build and Test (ubuntu-latest, 2.12.15, adopt@1.8)
-      - check-success=Build and Test (ubuntu-latest, 2.13.7, adopt@1.8)
+      - check-success=Build and Test (ubuntu-latest, 2.12.15, JavaSpec(Temurin,11))
+      - check-success=Build and Test (ubuntu-latest, 2.13.7, JavaSpec(Temurin,11))
     actions:
         merge:
             strict: true
