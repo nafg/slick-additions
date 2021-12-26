@@ -1,4 +1,7 @@
 defaults: {}
+queue_rules:
+  - name: default
+    conditions: []
 pull_request_rules:
   - name: Automatically merge successful scala-steward PRs
     conditions:
@@ -6,5 +9,5 @@ pull_request_rules:
       - check-success=Build and Test (ubuntu-latest, 2.12.15, temurin@11)
       - check-success=Build and Test (ubuntu-latest, 2.13.7, temurin@11)
     actions:
-        merge:
-            strict: true
+        queue:
+            name: default
