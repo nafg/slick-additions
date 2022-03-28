@@ -8,24 +8,6 @@ ThisBuild / scalaVersion := (ThisBuild / crossScalaVersions).value.last
 ThisBuild / organization := "io.github.nafg"
 ThisBuild / scalacOptions ++= Seq("-deprecation", "-unchecked")
 
-ThisBuild / githubWorkflowTargetTags ++= Seq("v*")
-ThisBuild / githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v")))
-ThisBuild / githubWorkflowEnv ++= List("BINTRAYKEY").map(envKey => envKey -> s"$${{ secrets.$envKey }}").toMap
-
-val githubUrl = url("https://github.com/nafg/slick-additions")
-
-ThisBuild / scmInfo := Some(
-  ScmInfo(
-    browseUrl = githubUrl,
-    connection = "scm:git:git@github.com/nafg/slick-additions.git"
-  )
-)
-
-ThisBuild / homepage := Some(githubUrl)
-
-ThisBuild / developers +=
-  Developer("nafg", "Naftoli Gugenheim", "98384+nafg@users.noreply.github.com", url("https://github.com/nafg"))
-
 lazy val `slick-additions-entity` =
   crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Pure)
     .settings()
