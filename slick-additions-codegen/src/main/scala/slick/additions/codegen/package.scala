@@ -1,5 +1,6 @@
 package slick.additions
 
+import scala.meta.{Defn, Mod}
 import scala.util.Try
 
 
@@ -21,4 +22,8 @@ package object codegen {
   val AsBoolean = new TryExtractor(_.toBoolean)
   val AsInt = new TryExtractor(_.toInt)
   val AsDouble = new TryExtractor(_.toDouble)
+
+  implicit class scalametaDefnClassExtensionMethods(private val self: Defn.Class) extends AnyVal {
+    def withMod(mod: Mod) = self.copy(mods = mod +: self.mods)
+  }
 }
