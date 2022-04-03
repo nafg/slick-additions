@@ -67,53 +67,57 @@ trait GenerationRules {
   def tableNameToIdentifier(name: MQName) = snakeToCamel(name.name).capitalize
   def modelClassName(tableName: MQName): String = tableNameToIdentifier(tableName) + "Row"
 
-  /**
-   * Determine the base Scala type for a column. If the column is nullable, the type
-   * returned from this method will be wrapped in `Option[...]`.
-   *
-   * Extend by overriding with `orElse`.
-   *
-   * @example {{{
-   *   override def baseColumnType(current: TableMetadata, all: Seq[TableMetadata]) =
-   *    super.baseColumnType(current, all).orElse {
-   *      case ...
-   *    }
-   * }}}
-   * @see [[columnConfig]]
-   */
-  def baseColumnType(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): PartialFunction[MColumn, Type] = {
-    case MColumn(_, _, _, "lo", _, _, _, _, _, _, _, _, _, _, _, _)                           => t"java.sql.Blob"
-    case MColumn(_, _, Types.NUMERIC, "numeric", _, _, _, _, _, _, _, _, _, _, _, _)          => t"BigDecimal"
-    case MColumn(_, _, Types.DOUBLE, "float8", _, _, _, _, _, _, _, _, _, _, _, _)            => t"Double"
-    case MColumn(_, _, Types.BIT, "bool", _, _, _, _, _, _, _, _, _, _, _, _)                 => t"Boolean"
-    case MColumn(_, _, Types.INTEGER, _, _, _, _, _, _, _, _, _, _, _, _, _)                  => t"Int"
-    case MColumn(_, _, Types.VARCHAR, "varchar" | "text", _, _, _, _, _, _, _, _, _, _, _, _) => t"String"
-    case MColumn(_, _, Types.DATE, "date", _, _, _, _, _, _, _, _, _, _, _, _)                => t"java.time.LocalDate"
+  /** Determine the base Scala type for a column. If the column is nullable, the type
+    * returned from this method will be wrapped in `Option[...]`.
+    *
+    * Extend by overriding with `orElse`.
+    *
+    * @example {{{
+    *   override def baseColumnType(current: TableMetadata, all: Seq[TableMetadata]) =
+    *    super.baseColumnType(current, all).orElse {
+    *      case ...
+    *    }
+    * }}}
+    * @see [[columnConfig]]
+    */
+  def baseColumnType(
+      currentTableMetadata: TableMetadata,
+      all: Seq[TableMetadata]
+  ): PartialFunction[MColumn, Type] = {
+    case ColType(_, "lo", _)                            => t"java.sql.Blob"
+    case ColType(Types.NUMERIC, "numeric", _)           => t"BigDecimal"
+    case ColType(Types.DOUBLE, "float8", _)             => t"Double"
+    case ColType(Types.BIGINT, "bigserial" | "int8", _) => t"Long"
+    case ColType(Types.BIT, "bool", _)                  => t"Boolean"
+    case ColType(Types.INTEGER, _, _)                   => t"Int"
+    case ColType(Types.VARCHAR, "varchar" | "text", _)  => t"String"
+    case ColType(Types.DATE, "date", _)                 => t"java.time.LocalDate"
   }
 
-  /**
-   * Determine the base Scala default value for a column. If the columns is nullable, the
-   * expression returned from this method will be wrapped in `Some(...)`.
-   *
-   * Extend by overriding with `orElse`.
-   *
-   * @example {{{
-   *   override def baseColumnDefault(current: TableMetadata, all: Seq[TableMetadata]) =
-   *    super.baseColumnDefault(current, all).orElse {
-   *      case ...
-   *    }
-   * }}}
-   * @see [[columnConfig]]
-   */
-  def baseColumnDefault(currentTableMetadata: TableMetadata,
-                        all: Seq[TableMetadata]): PartialFunction[MColumn, Term] = {
-    case MColumn(_, _, Types.BIT, "bool", _, _, _, _, _, Some(AsBoolean(b)), _, _, _, _, _, _)      => Lit.Boolean(b)
-    case MColumn(_, _, Types.INTEGER, _, _, _, _, _, _, Some(AsInt(i)), _, _, _, _, _, _)           => Lit.Int(i)
-    case MColumn(_, _, Types.DOUBLE, "float8", _, _, _, _, _, Some(AsDouble(d)), _, _, _, _, _, _)  => Lit.Double(d)
-    case MColumn(_, _, Types.NUMERIC, "numeric", _, _, _, _, _, Some(s), _, _, _, _, _, _)          => q"BigDecimal($s)"
-    case MColumn(_, _, Types.VARCHAR, "varchar" | "text", _, _, _, _, _, Some(s), _, _, _, _, _, _) =>
+  /** Determine the base Scala default value for a column. If the columns is nullable, the
+    * expression returned from this method will be wrapped in `Some(...)`.
+    *
+    * Extend by overriding with `orElse`.
+    *
+    * @example {{{
+    *   override def baseColumnDefault(current: TableMetadata, all: Seq[TableMetadata]) =
+    *    super.baseColumnDefault(current, all).orElse {
+    *      case ...
+    *    }
+    * }}}
+    * @see [[columnConfig]]
+    */
+  def baseColumnDefault(
+      currentTableMetadata: TableMetadata,
+      all: Seq[TableMetadata]
+  ): PartialFunction[MColumn, Term] = {
+    case ColType(Types.BIT, "bool", Some(AsBoolean(b)))     => Lit.Boolean(b)
+    case ColType(Types.INTEGER, _, Some(AsInt(i)))          => Lit.Int(i)
+    case ColType(Types.DOUBLE, "float8", Some(AsDouble(d))) => Lit.Double(d)
+    case ColType(Types.NUMERIC, "numeric", Some(s))         => q"BigDecimal($s)"
+    case ColType(Types.VARCHAR, "varchar" | "text", Some(s)) =>
       Lit.String(s.stripPrefix("'").stripSuffix("'"))
-    case MColumn(_, _, Types.DATE, "date", _, _, _, _, _, Some("now()"), _, _, _, _, _, _)          =>
+    case ColType(Types.DATE, "date", Some("now()")) =>
       q"java.time.LocalDate.now()"
   }
 
