@@ -22,7 +22,7 @@ lazy val `slick-additions` =
         "com.typesafe.slick" %% "slick" % "3.4.0-M1",
         "com.lihaoyi" %% "sourcecode" % "0.2.8",
         "org.scalatest" %% "scalatest" % "3.2.12" % "test",
-        "com.h2database" % "h2" % "2.1.212" % "test",
+        "com.h2database" % "h2" % "2.1.214" % "test",
         "ch.qos.logback" % "logback-classic" % "1.2.11" % "test"
       )
     )
