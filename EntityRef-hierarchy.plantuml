@@ -6,6 +6,7 @@ class EntityKey as "EntityKey[K, A]" extends Lookup
 interface Entity as "Entity[K, A]" <<trait>> extends EntityRef
 class KeylessEntity as "KeylessEntity[K, A]" extends Entity
 interface KeyedEntity as "KeyedEntity[K, A]" <<trait>> extends Entity
+interface KeyedEntity as "KeyedEntity[K, A]" <<trait>> extends Lookup
 class ModifiedEntity as "ModifiedEntity[K, A]" extends KeyedEntity
 class SavedEntity as "SavedEntity[K, A]" extends KeyedEntity
 
