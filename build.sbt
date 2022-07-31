@@ -21,7 +21,7 @@ lazy val `slick-additions` =
         "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
         "com.typesafe.slick" %% "slick" % "3.4.0-RC3",
         "com.lihaoyi" %% "sourcecode" % "0.3.0",
-        "org.scalatest" %% "scalatest" % "3.2.12" % "test",
+        "org.scalatest" %% "scalatest" % "3.2.13" % "test",
         "com.h2database" % "h2" % "2.1.214" % "test",
         "ch.qos.logback" % "logback-classic" % "1.2.11" % "test"
       )
