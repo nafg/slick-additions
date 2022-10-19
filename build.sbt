@@ -21,7 +21,7 @@ lazy val `slick-additions` =
         "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
         "com.typesafe.slick" %% "slick" % "3.4.1",
         "com.lihaoyi" %% "sourcecode" % "0.3.0",
-        "org.scalatest" %% "scalatest" % "3.2.13" % "test",
+        "org.scalatest" %% "scalatest" % "3.2.14" % "test",
         "com.h2database" % "h2" % "2.1.214" % "test",
         "ch.qos.logback" % "logback-classic" % "1.4.4" % "test"
       )
@@ -32,6 +32,6 @@ lazy val `slick-additions-codegen` =
     .settings(
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick-hikaricp" % "3.4.1",
-        "org.scalameta" %% "scalameta" % "4.5.13"
+        "org.scalameta" %% "scalameta" % "4.6.0"
       )
     )
