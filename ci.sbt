@@ -1,3 +1,11 @@
+import _root_.io.github.nafg.mergify.dsl._
+
+
+mergifyExtraConditions := Seq(
+  (Attr.Author :== "scala-steward") ||
+    (Attr.Author :== "nafg-scala-steward[bot]")
+)
+
 val githubUrl = url("https://github.com/nafg/slick-additions")
 
 inThisBuild(List(
