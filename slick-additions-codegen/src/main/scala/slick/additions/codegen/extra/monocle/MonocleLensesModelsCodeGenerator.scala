@@ -16,7 +16,7 @@ trait MonocleLensesModelsCodeGenerator extends ModelsCodeGenerator {
   override protected def modelClass(tableConfig: TableConfig) =
     super
       .modelClass(tableConfig)
-      .withMod(Mod.Annot(Init(Type.Name("Lenses"), Name.Anonymous(), Nil)))
+      .withMod(Mod.Annot(Init(Type.Name("Lenses"), Name.Anonymous(), Seq())))
 
   override protected def rowStats(tableConfig: TableConfig) =
     List(

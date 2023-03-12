@@ -16,7 +16,7 @@ import slick.jdbc.JdbcProfile
  */
 class EntityTableModulesCodeGenerator extends TablesCodeGenerator {
   override protected def profileImport(slickProfileClass: Class[_ <: JdbcProfile]) = {
-    val profileName = Init(toTypeRef(slickProfileClass.getName.stripSuffix("$")), Name.Anonymous(), Nil)
+    val profileName = Init(toTypeRef(slickProfileClass.getName.stripSuffix("$")), Name.Anonymous(), Seq())
 
     q"""
       import slick.additions.AdditionsProfile
