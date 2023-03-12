@@ -13,7 +13,7 @@ import sourcecode.Name
 
 
 trait AdditionsProfile { this: JdbcProfile =>
-  trait AdditionsApi { this: API =>
+  trait AdditionsApi { this: JdbcAPI =>
     implicit def lookupBaseColumnType[K: BaseColumnType, A]: BaseColumnType[Lookup[K, A]] =
       MappedColumnType.base[Lookup[K, A], K](_.key, EntityKey(_))
 

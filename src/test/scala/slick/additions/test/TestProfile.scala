@@ -5,7 +5,7 @@ import slick.jdbc.H2Profile
 
 
 trait TestProfile extends H2Profile with AdditionsProfile {
-  object _api extends AdditionsApi with API
+  object _api extends AdditionsApi with JdbcAPI
   override val api = _api
 }
 
