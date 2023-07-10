@@ -32,15 +32,17 @@ trait BaseCodeGenerator {
   private def toTermRef0(last: String, revInit: List[String]): Term.Ref =
     recursePathTerm[Term.Name, Term.Ref](revInit, term"$last")(_.termSelect(_))
 
-  protected def toTermRef(s: String): Term.Ref = {
-    val last :: revInit = s.split('.').toList.reverse
-    toTermRef0(last, revInit)
-  }
+  protected def toTermRef(s: String): Term.Ref =
+    s.split('.').toList.reverse match {
+      case Nil             => term"$s"
+      case last :: revInit => toTermRef0(last, revInit)
+    }
 
-  protected def toTypeRef(s: String): Type.Ref = {
-    val last :: revInit = s.split('.').toList.reverse
-    recursePathTerm[Type.Name, Type.Ref](revInit, typ"$last")(_.typeSelect(_))
-  }
+  protected def toTypeRef(s: String): Type.Ref =
+    s.split('.').toList.reverse match {
+      case Nil             => typ"$s"
+      case last :: revInit => recursePathTerm[Type.Name, Type.Ref](revInit, typ"$last")(_.typeSelect(_))
+    }
 
   protected def imports(strings: List[String]): List[Stat] =
     if (strings.isEmpty)

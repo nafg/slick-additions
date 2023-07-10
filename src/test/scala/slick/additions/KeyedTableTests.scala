@@ -2,8 +2,8 @@ package slick.additions
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import slick.additions.test.TestsCommon
 import slick.additions.test.TestProfile.api._
+import slick.additions.test.TestsCommon
 
 import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.funsuite.AnyFunSuite
