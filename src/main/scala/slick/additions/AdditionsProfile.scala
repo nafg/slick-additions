@@ -54,7 +54,7 @@ trait AdditionsProfile { this: JdbcProfile =>
 
       def * = all
 
-      def lookup = LookupRep[K, V](key.<>(EntityKey.apply, lookup => Some(lookup.key)))
+      def lookup = column[Lookup[K, V]](keyColumnName, keyColumnOptions: _*)
     }
 
     class KeyedTableQueryBase[K: BaseColumnType, A, T <: KeyedTable[K, A]](cons: Tag => (T with KeyedTable[K, A]))
