@@ -45,7 +45,7 @@ trait AdditionsProfile { this: JdbcProfile =>
       type Value = V
       def Ent(v: Value) = new KeylessEntity[Key, Value](v)
 
-      def tableQuery: Query[EntityTable[K, V], KEnt, Seq]
+      def tableQuery: Query[EntityTable[K, V], this.KEnt, Seq]
 
       def mapping: MappedProjection[V, _]
 
