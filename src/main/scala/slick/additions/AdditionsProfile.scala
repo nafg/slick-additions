@@ -2,7 +2,7 @@ package slick
 package additions
 
 import scala.concurrent.ExecutionContext
-import scala.language.{higherKinds, implicitConversions}
+import scala.language.implicitConversions
 
 import slick.additions.entity._
 import slick.ast._
