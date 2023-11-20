@@ -20,6 +20,7 @@ class TablesCodeGenerator extends BaseCodeGenerator {
 
   def mkMapping(rowClassName: String, mappingName: Term.Name, columns: List[ColumnConfig]) = {
     val companion = Term.Name(rowClassName)
+    val rowClassType = Type.Name(rowClassName)
     val terms = columns.map(_.tableFieldTerm)
     val numCols = columns.length
     val (tuple, factory, extractor) =
@@ -53,7 +54,7 @@ class TablesCodeGenerator extends BaseCodeGenerator {
         (group22[Term](terms)(Term.Tuple(_)), fac, extractor)
       }
 
-    q"def $mappingName = $tuple.<>({$factory}, $extractor)"
+    q"def $mappingName: MappedProjection[$rowClassType, ?] = $tuple.<>({$factory}, $extractor)"
   }
 
   def columnField: ColumnConfig => Stat = {
