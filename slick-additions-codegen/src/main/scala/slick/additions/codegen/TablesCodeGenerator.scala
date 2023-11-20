@@ -16,6 +16,7 @@ import slick.jdbc.meta.MQName
  * so that no single tuple has more than 22 elements.
  */
 class TablesCodeGenerator extends BaseCodeGenerator {
+  //noinspection ScalaWeakerAccess
   def isDefaultSchema(schema: String) = schema == "public"
 
   def mkMapping(rowClassName: String, mappingName: Term.Name, columns: List[ColumnConfig]) = {
