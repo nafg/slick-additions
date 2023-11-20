@@ -20,10 +20,11 @@ class EntityTableModulesCodeGenerator extends TablesCodeGenerator {
 
     q"""
       import slick.additions.AdditionsProfile
+      import slick.lifted.MappedProjection
 
       trait SlickProfile extends $profileName with AdditionsProfile {
-        object myApi extends API with AdditionsApi
-        override val api = myApi
+        object myApi extends JdbcAPI with AdditionsApi
+        override val api: myApi.type = myApi
       }
       object SlickProfile extends SlickProfile
 
