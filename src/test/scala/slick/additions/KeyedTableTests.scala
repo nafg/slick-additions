@@ -14,19 +14,19 @@ class KeyedTableTests extends AnyFunSuite with Matchers with TestsCommon with In
   case class Phone(kind: String, number: String, person: Option[People.Lookup] = None)
   class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones") {
     def tableQuery = Phones
-    def person = column[Option[People.Lookup]]("person_id")
-    def kind = column[String]("kind")
-    def number = column[String]("number")
-    def mapping = (kind, number, person).mapTo[Phone]
+    def person     = column[Option[People.Lookup]]("person_id")
+    def kind       = column[String]("kind")
+    def number     = column[String]("number")
+    def mapping    = (kind, number, person).mapTo[Phone]
   }
-  object Phones extends EntTableQuery[Long, Phone, Phones](new Phones(_))
+  object Phones          extends EntTableQuery[Long, Phone, Phones](new Phones(_))
 
   case class Person(first: String, last: String)
   class People(tag: Tag) extends EntityTable[Long, Person](tag, "people") {
     def tableQuery = People
 
     def first = column[String]("first")
-    def last = column[String]("last")
+    def last  = column[String]("last")
 
     def mapping = (first, last).mapTo[Person]
   }
@@ -35,9 +35,8 @@ class KeyedTableTests extends AnyFunSuite with Matchers with TestsCommon with In
 
   val schema = Phones.schema ++ People.schema
 
-
   test("EntTableQuery#insert(KeylessEntity) does not insert twice [regression]") {
-    val phone = Phone("main", "1407124383")
+    val phone       = Phone("main", "1407124383")
     val countAction = Phones.filter(_.number === phone.number).length.result
     assert(db.run(countAction).futureValue == 0)
     assert(db.run(Phones.insert(phone) >> countAction).futureValue == 1)
@@ -46,7 +45,7 @@ class KeyedTableTests extends AnyFunSuite with Matchers with TestsCommon with In
   test("Using lookup in a query") {
     val res = db run (for {
       id <- People.map(_.mapping) returning People.map(_.key) += Person("first1", "last1")
-      _ <- Phones.map(_.mapping) += Phone("M", "111", Some(People.Lookup(id)))
+      _  <- Phones.map(_.mapping) += Phone("M", "111", Some(People.Lookup(id)))
       xs <- People.filter(_.lookup in Phones.map(_.person)).result
     } yield xs)
     res.futureValue

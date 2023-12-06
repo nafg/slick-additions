@@ -4,8 +4,8 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 name := "slick-additions"
 
 ThisBuild / crossScalaVersions := Seq("2.12.18", "2.13.12")
-ThisBuild / scalaVersion := (ThisBuild / crossScalaVersions).value.last
-ThisBuild / organization := "io.github.nafg"
+ThisBuild / scalaVersion       := (ThisBuild / crossScalaVersions).value.last
+ThisBuild / organization       := "io.github.nafg"
 ThisBuild / scalacOptions ++= Seq("-deprecation", "-unchecked")
 
 lazy val `slick-additions-entity` =
@@ -20,12 +20,12 @@ lazy val `slick-additions` =
     .aggregate(`slick-additions-entity`.jvm, `slick-additions-entity`.js, `slick-additions-codegen`)
     .settings(
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
-        "com.typesafe.slick" %% "slick" % slickVersion,
-        "com.lihaoyi" %% "sourcecode" % "0.3.1",
-        "org.scalatest" %% "scalatest" % "3.2.17" % "test",
-        "com.h2database" % "h2" % "2.2.224" % "test",
-        "ch.qos.logback" % "logback-classic" % "1.4.14" % "test"
+        "org.scala-lang"      % "scala-reflect"   % scalaVersion.value % "provided",
+        "com.typesafe.slick" %% "slick"           % slickVersion,
+        "com.lihaoyi"        %% "sourcecode"      % "0.3.1",
+        "org.scalatest"      %% "scalatest"       % "3.2.17"           % "test",
+        "com.h2database"      % "h2"              % "2.2.224"          % "test",
+        "ch.qos.logback"      % "logback-classic" % "1.4.14"           % "test"
       )
     )
 
@@ -34,6 +34,6 @@ lazy val `slick-additions-codegen` =
     .settings(
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
-        "org.scalameta" %% "scalameta" % "4.8.14"
+        "org.scalameta"      %% "scalameta"      % "4.8.14"
       )
     )

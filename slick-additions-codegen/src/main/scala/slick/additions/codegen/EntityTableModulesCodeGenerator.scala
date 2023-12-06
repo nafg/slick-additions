@@ -5,15 +5,13 @@ import scala.meta._
 import slick.jdbc.JdbcProfile
 
 
-/**
- * Uses `slick-additions` `EntityTableModule` to represent tables.
- * Generates a custom profile object that mixes in `AdditionsProfile`
- * with an `api` member that mixes in `AdditionsApi`.
- *
- * Models should be generated with [[KeylessModelsCodeGenerator]].
- *
- * Generated code requires `slick-additions`.
- */
+/** Uses `slick-additions` `EntityTableModule` to represent tables. Generates a custom profile object that mixes in
+  * `AdditionsProfile` with an `api` member that mixes in `AdditionsApi`.
+  *
+  * Models should be generated with [[KeylessModelsCodeGenerator]].
+  *
+  * Generated code requires `slick-additions`.
+  */
 class EntityTableModulesCodeGenerator extends TablesCodeGenerator {
   override protected def profileImport(slickProfileClass: Class[_ <: JdbcProfile]) = {
     val profileName = Init(toTypeRef(slickProfileClass.getName.stripSuffix("$")), Name.Anonymous(), Seq())
@@ -36,7 +34,7 @@ class EntityTableModulesCodeGenerator extends TablesCodeGenerator {
     case tableConfig @ TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
       columns.partition(c => tableMetadata.primaryKeys.exists(_.column == c.column.name)) match {
         case (Seq(pk), otherCols) =>
-          val fields = otherCols.map(columnField)
+          val fields  = otherCols.map(columnField)
           val mapping = mkMapping(modelClassName, q"mapping", otherCols)
           val keyType = pk.scalaType
           List(

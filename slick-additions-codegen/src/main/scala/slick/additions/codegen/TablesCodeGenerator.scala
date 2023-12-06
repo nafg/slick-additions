@@ -8,22 +8,20 @@ import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MQName
 
 
-/**
- * Code generator for standard Slick table definitions.
- * The generated code has no dependency on slick-additions.
- *
- * Tables that have more than 22 fields are mapped by simply nesting tuples
- * so that no single tuple has more than 22 elements.
- */
+/** Code generator for standard Slick table definitions. The generated code has no dependency on slick-additions.
+  *
+  * Tables that have more than 22 fields are mapped by simply nesting tuples so that no single tuple has more than 22
+  * elements.
+  */
 class TablesCodeGenerator extends BaseCodeGenerator {
-  //noinspection ScalaWeakerAccess
+  // noinspection ScalaWeakerAccess
   def isDefaultSchema(schema: String) = schema == "public"
 
   def mkMapping(rowClassName: String, mappingName: Term.Name, columns: List[ColumnConfig]) = {
-    val companion = Term.Name(rowClassName)
-    val rowClassType = Type.Name(rowClassName)
-    val terms = columns.map(_.tableFieldTerm)
-    val numCols = columns.length
+    val companion                   = Term.Name(rowClassName)
+    val rowClassType                = Type.Name(rowClassName)
+    val terms                       = columns.map(_.tableFieldTerm)
+    val numCols                     = columns.length
     val (tuple, factory, extractor) =
       if (numCols == 1)
         (terms.head, q"$companion.apply", q"$companion.unapply")
@@ -67,9 +65,9 @@ class TablesCodeGenerator extends BaseCodeGenerator {
 
   def tableStats: TableConfig => List[Stat] = {
     case TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
-      val fields = columns.map(columnField)
+      val fields  = columns.map(columnField)
       val mapping = mkMapping(modelClassName, q"*", columns)
-      val params = tableMetadata.table.name match {
+      val params  = tableMetadata.table.name match {
         case MQName(None, Some(schema), name) if !isDefaultSchema(schema) => List(q"Some($schema)", Lit.String(name))
         case MQName(None, _, name)                                        => List(Lit.String(name))
         case MQName(Some(_), _, _)                                        => sys.error("catalog not supported")
@@ -93,8 +91,11 @@ class TablesCodeGenerator extends BaseCodeGenerator {
     List(q"import $profileName.api._")
   }
 
-  override def codeString(rules: GenerationRules, slickProfileClass: Class[_ <: JdbcProfile])
-                         (implicit executionContext: ExecutionContext) =
+  override def codeString(
+    rules: GenerationRules,
+    slickProfileClass: Class[_ <: JdbcProfile]
+  )(implicit executionContext: ExecutionContext
+  ) =
     rules.tableConfigs(slickProfileClass).map { tableConfigs =>
       q"""
         package ${toTermRef(rules.packageName)} {

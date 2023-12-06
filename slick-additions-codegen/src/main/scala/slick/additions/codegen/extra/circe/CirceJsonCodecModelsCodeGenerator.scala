@@ -4,6 +4,7 @@ import scala.meta.{Init, Mod, Name, Type}
 
 import slick.additions.codegen.{ModelsCodeGenerator, TableConfig, scalametaDefnClassExtensionMethods}
 
+
 /** Annotates model classes with Circe's `@JsonCodec`.
   *
   * Generated code requires `circe-generic`
@@ -14,6 +15,5 @@ trait CirceJsonCodecModelsCodeGenerator extends ModelsCodeGenerator {
       .modelClass(tableConfig)
       .withMod(Mod.Annot(Init(Type.Name("JsonCodec"), Name.Anonymous(), Seq())))
 
-  override protected def imports(strings: List[String]) =
-    super.imports(strings :+ "io.circe.generic.JsonCodec")
+  override protected def imports(strings: List[String]) = super.imports(strings :+ "io.circe.generic.JsonCodec")
 }

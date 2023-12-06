@@ -6,9 +6,8 @@ import scala.meta._
 import slick.jdbc.JdbcProfile
 
 
-/**
- * Code generator that produces a case class for each table to represent a row in code
- */
+/** Code generator that produces a case class for each table to represent a row in code
+  */
 class ModelsCodeGenerator extends BaseCodeGenerator {
   protected def columnConfigs(tableConfig: TableConfig) = tableConfig.columns
 
@@ -20,11 +19,13 @@ class ModelsCodeGenerator extends BaseCodeGenerator {
     q"case class ${Type.Name(tableConfig.modelClassName)}(..$params)"
   }
 
-  protected def rowStats(tableConfig: TableConfig): List[Stat] =
-    List(modelClass(tableConfig))
+  protected def rowStats(tableConfig: TableConfig): List[Stat] = List(modelClass(tableConfig))
 
-  override def codeString(rules: GenerationRules, slickProfileClass: Class[_ <: JdbcProfile])
-                         (implicit executionContext: ExecutionContext) =
+  override def codeString(
+    rules: GenerationRules,
+    slickProfileClass: Class[_ <: JdbcProfile]
+  )(implicit executionContext: ExecutionContext
+  ) =
     rules.tableConfigs(slickProfileClass).map { tableConfigs =>
       q"""
         package ${toTermRef(rules.packageName)} {
