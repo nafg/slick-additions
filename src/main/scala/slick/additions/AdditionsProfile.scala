@@ -47,10 +47,10 @@ trait AdditionsProfile { this: JdbcProfile =>
 
       def tableQuery: Query[EntityTable[K, V], this.KEnt, Seq]
 
-      def mapping: MappedProjection[V, _]
+      def mapping: MappedProjection[V]
 
-      private def all: MappedProjection[KeyedEntity[K, V], (K, V)] =
-        (key, mapping).<>((KeyedEntity.apply[K, V] _).tupled, KeyedEntity.unapply[K, V] _)
+      private def all: MappedProjection[KeyedEntity[K, V]] =
+        (key, mapping).<>((KeyedEntity.apply[K, V] _).tupled, KeyedEntity.unapply[K, V])
 
       def * = all
 
@@ -81,8 +81,8 @@ trait AdditionsProfile { this: JdbcProfile =>
       override def lookupQuery(lookup: Lookup) = this.filter(_.key === lookup.key)
       override def lookupValue(a: KeyedEntity[K, V]) = a.value
 
-      implicit val mappingRepShape: Shape[FlatShapeLevel, MappedProjection[V, _], V, MappedProjection[V, _]] =
-        RepShape[FlatShapeLevel, MappedProjection[V, _], V]
+      implicit val mappingRepShape: Shape[FlatShapeLevel, MappedProjection[V], V, MappedProjection[V]] =
+        RepShape[FlatShapeLevel, MappedProjection[V], V]
 
       def forInsertQuery[E, C[_]](q: Query[T, E, C]) = q.map(_.mapping)
 
