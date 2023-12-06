@@ -22,7 +22,7 @@ package object codegen {
     def unapply(string: String) = Try(f(string)).toOption
   }
   val AsBoolean = new TryExtractor(_.toBoolean)
-  val AsInt = new TryExtractor(_.toInt)
+  val AsInt    = new TryExtractor(_.toInt)
   val AsDouble = new TryExtractor(_.toDouble)
 
   object ColType {

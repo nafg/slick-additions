@@ -12,18 +12,19 @@ import slick.jdbc.{JdbcBackend, JdbcProfile}
 import com.typesafe.config.Config
 
 
-/**
- * Base trait for code generators. Code generators are responsible for producing
- * actual code, but many of the details are determined by the [[TableConfig]]s and
- * [[ColumnConfig]]s produced by the instance of [[GenerationRules]] that is passed in.
- *
- * @see [[GenerationRules]]
- */
+/** Base trait for code generators. Code generators are responsible for producing actual code, but many of the details
+  * are determined by the [[TableConfig]]s and [[ColumnConfig]]s produced by the instance of [[GenerationRules]] that is
+  * passed in.
+  *
+  * @see
+  *   [[GenerationRules]]
+  */
 trait BaseCodeGenerator {
-  private def toTermRef0(last: String, revInit: List[String]): Term.Ref = revInit match {
-    case Nil     => Term.Name(last)
-    case x :: xs => Term.Select(toTermRef0(x, xs), Term.Name(last))
-  }
+  private def toTermRef0(last: String, revInit: List[String]): Term.Ref =
+    revInit match {
+      case Nil     => Term.Name(last)
+      case x :: xs => Term.Select(toTermRef0(x, xs), Term.Name(last))
+    }
 
   protected def toTermRef(s: String): Term.Ref = {
     val last :: revInit = s.split('.').toList.reverse
@@ -44,17 +45,26 @@ trait BaseCodeGenerator {
     else
       List(q"import ..${strings.map(_.parse[Importer].get)}")
 
-  def codeString(rules: GenerationRules, slickProfileClass: Class[_ <: JdbcProfile])
-                (implicit executionContext: ExecutionContext): DBIO[String]
+  def codeString(
+    rules: GenerationRules,
+    slickProfileClass: Class[_ <: JdbcProfile]
+  )(implicit executionContext: ExecutionContext
+  ): DBIO[String]
 
-  def codeString(rules: GenerationRules, slickProfileClassName: String)
-                (implicit executionContext: ExecutionContext): DBIO[String] =
-    codeString(rules, Class.forName(slickProfileClassName).asSubclass(classOf[JdbcProfile]))
+  def codeString(
+    rules: GenerationRules,
+    slickProfileClassName: String
+  )(implicit executionContext: ExecutionContext
+  ): DBIO[String] = codeString(rules, Class.forName(slickProfileClassName).asSubclass(classOf[JdbcProfile]))
 
-  def doWriteToFile(baseDir: Path, slickConfig: Config, rules: GenerationRules)
-                   (implicit executionContext: ExecutionContext): Path = {
+  def doWriteToFile(
+    baseDir: Path,
+    slickConfig: Config,
+    rules: GenerationRules
+  )(implicit executionContext: ExecutionContext
+  ): Path = {
     val path = rules.filePath(baseDir)
-    val db = JdbcBackend.Database.forConfig("", slickConfig)
+    val db   = JdbcBackend.Database.forConfig("", slickConfig)
     val code =
       try Await.result(db.run(codeString(rules, slickConfig.getString("profile"))), Duration.Inf)
       finally db.close()

@@ -2,11 +2,8 @@ package slick.additions.codegen.extra.monocle
 
 import scala.meta._
 
-import slick.additions.codegen.{
-  ModelsCodeGenerator,
-  TableConfig,
-  scalametaDefnClassExtensionMethods
-}
+import slick.additions.codegen.{ModelsCodeGenerator, TableConfig, scalametaDefnClassExtensionMethods}
+
 
 /** Annotates model classes with Monocle's `@Lenses`.
   *
@@ -24,6 +21,5 @@ trait MonocleLensesModelsCodeGenerator extends ModelsCodeGenerator {
       q"object ${Term.Name(tableConfig.modelClassName)}"
     )
 
-  override protected def imports(strings: List[String]) =
-    super.imports(strings :+ "monocle.macros.Lenses")
+  override protected def imports(strings: List[String]) = super.imports(strings :+ "monocle.macros.Lenses")
 }
