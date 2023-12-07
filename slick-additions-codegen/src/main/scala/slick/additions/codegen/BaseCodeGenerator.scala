@@ -51,11 +51,8 @@ trait BaseCodeGenerator {
   )(implicit executionContext: ExecutionContext
   ): DBIO[String]
 
-  def codeString(
-    rules: GenerationRules,
-    slickProfileClassName: String
-  )(implicit executionContext: ExecutionContext
-  ): DBIO[String] = codeString(rules, Class.forName(slickProfileClassName).asSubclass(classOf[JdbcProfile]))
+  def codeString(rules: GenerationRules, slickProfileClassName: String)(implicit executionContext: ExecutionContext)
+    : DBIO[String] = codeString(rules, Class.forName(slickProfileClassName).asSubclass(classOf[JdbcProfile]))
 
   def doWriteToFile(
     baseDir: Path,
