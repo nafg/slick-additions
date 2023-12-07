@@ -123,7 +123,8 @@ trait AdditionsProfile { this: JdbcProfile =>
       )(targetColumns: TT => P,
         onUpdate: ForeignKeyAction = ForeignKeyAction.NoAction,
         onDelete: ForeignKeyAction = ForeignKeyAction.NoAction
-      )(implicit unpackT: Shape[_ <: FlatShapeLevel, TT, U, _],
+      )(implicit
+        unpackT: Shape[_ <: FlatShapeLevel, TT, U, _],
         unpackP: Shape[_ <: FlatShapeLevel, P, PU, _],
         name: Name,
         dbNameStyle: NameStyle
@@ -137,7 +138,8 @@ trait AdditionsProfile { this: JdbcProfile =>
       def idx[A](
         on: A,
         unique: Boolean = false
-      )(implicit shape: Shape[_ <: FlatShapeLevel, A, _, _],
+      )(implicit
+        shape: Shape[_ <: FlatShapeLevel, A, _, _],
         name: Name,
         dbNameStyle: NameStyle
       ) = index(dbNameStyle.indexName(tableName, name.value), on, unique = unique)

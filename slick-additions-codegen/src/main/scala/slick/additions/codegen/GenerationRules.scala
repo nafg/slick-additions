@@ -107,10 +107,8 @@ trait GenerationRules {
     * @see
     *   [[columnConfig]]
     */
-  def baseColumnDefault(
-    currentTableMetadata: TableMetadata,
-    all: Seq[TableMetadata]
-  ): PartialFunction[MColumn, Term] = {
+  def baseColumnDefault(currentTableMetadata: TableMetadata, all: Seq[TableMetadata])
+    : PartialFunction[MColumn, Term] = {
     case ColType(Types.BIT, "bool", Some(AsBoolean(b)))      => Lit.Boolean(b)
     case ColType(Types.INTEGER, _, Some(AsInt(i)))           => Lit.Int(i)
     case ColType(Types.DOUBLE, "float8", Some(AsDouble(d)))  => Lit.Double(d)
@@ -145,10 +143,8 @@ trait GenerationRules {
       columns = columnConfigs(currentTableMetadata, all)
     )
 
-  def tableConfigs(
-    slickProfileClass: Class[_ <: JdbcProfile]
-  )(implicit ec: ExecutionContext
-  ): DBIO[List[TableConfig]] = {
+  def tableConfigs(slickProfileClass: Class[_ <: JdbcProfile])(implicit ec: ExecutionContext)
+    : DBIO[List[TableConfig]] = {
     val slickProfileInstance = slickProfileClass.getField("MODULE$").get(null).asInstanceOf[JdbcProfile]
     for {
       tables        <- slickProfileInstance.defaultTables
