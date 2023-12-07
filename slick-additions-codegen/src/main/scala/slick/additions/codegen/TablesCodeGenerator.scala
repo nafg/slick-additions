@@ -17,6 +17,8 @@ class TablesCodeGenerator extends BaseCodeGenerator {
   // noinspection ScalaWeakerAccess
   def isDefaultSchema(schema: String) = schema == "public"
 
+  def mappingType(rowClassType: Type.Name) = t"slick.lifted.ProvenShape[$rowClassType]"
+
   def mkMapping(rowClassName: String, mappingName: Term.Name, columns: List[ColumnConfig]) = {
     val companion                   = Term.Name(rowClassName)
     val rowClassType                = Type.Name(rowClassName)
@@ -53,7 +55,7 @@ class TablesCodeGenerator extends BaseCodeGenerator {
         (group22[Term](terms)(Term.Tuple(_)), fac, extractor)
       }
 
-    q"def $mappingName: MappedProjection[$rowClassType] = $tuple.<>({$factory}, $extractor)"
+    q"def $mappingName: ${mappingType(rowClassType)} = $tuple.<>({$factory}, $extractor)"
   }
 
   def columnField: ColumnConfig => Stat = {

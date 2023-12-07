@@ -40,3 +40,18 @@ lazy val `slick-additions-codegen` =
         "org.scalatest"      %% "scalatest"      % "3.2.17"  % "test"
       )
     )
+
+lazy val `test-codegen` =
+  project
+    .in(`slick-additions-codegen`.base / "src" / "test" / "resources")
+    .dependsOn(`slick-additions`)
+    .settings(
+      publish / skip                       := true,
+      Compile / unmanagedSourceDirectories := Seq(baseDirectory.value),
+      scalacOptions += "-Ymacro-annotations",
+      libraryDependencies ++= Seq(
+        "com.typesafe.slick" %% "slick"         % slickVersion,
+        "io.circe"           %% "circe-generic" % "0.14.5",
+        "dev.optics"         %% "monocle-macro" % "3.2.0"
+      )
+    )
