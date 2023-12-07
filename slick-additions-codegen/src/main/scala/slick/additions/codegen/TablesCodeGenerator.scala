@@ -67,10 +67,12 @@ class TablesCodeGenerator extends BaseCodeGenerator {
     case TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
       val fields  = columns.map(columnField)
       val mapping = mkMapping(modelClassName, q"*", columns)
+      tableMetadata.table.name.catalog.foreach { catalog =>
+        println(s"Warning: ignoring catalog ($catalog)")
+      }
       val params  = tableMetadata.table.name match {
-        case MQName(None, Some(schema), name) if !isDefaultSchema(schema) => List(q"Some($schema)", Lit.String(name))
-        case MQName(None, _, name)                                        => List(Lit.String(name))
-        case MQName(Some(_), _, _)                                        => sys.error("catalog not supported")
+        case MQName(_, Some(schema), name) if !isDefaultSchema(schema) => List(q"Some($schema)", Lit.String(name))
+        case MQName(_, _, name)                                        => List(Lit.String(name))
       }
       List(
         q"""
