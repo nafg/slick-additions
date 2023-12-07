@@ -9,3 +9,4 @@ target/
 sonar-project.properties
 *.h2.db
 *.lock.db
+/.bsp
