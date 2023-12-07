@@ -86,14 +86,14 @@ trait GenerationRules {
     *   [[columnConfig]]
     */
   def baseColumnType(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): PartialFunction[MColumn, Type] = {
-    case ColType(_, "lo", _)                            => t"java.sql.Blob"
-    case ColType(Types.NUMERIC, "numeric", _)           => t"BigDecimal"
-    case ColType(Types.DOUBLE, "float8", _)             => t"Double"
-    case ColType(Types.BIGINT, "bigserial" | "int8", _) => t"Long"
-    case ColType(Types.BIT, "bool", _)                  => t"Boolean"
-    case ColType(Types.INTEGER, _, _)                   => t"Int"
-    case ColType(Types.VARCHAR, "varchar" | "text", _)  => t"String"
-    case ColType(Types.DATE, "date", _)                 => t"java.time.LocalDate"
+    case ColType(_, "lo", _)                                                 => t"java.sql.Blob"
+    case ColType(Types.NUMERIC, "numeric", _)                                => t"BigDecimal"
+    case ColType(Types.DOUBLE, "double precision" | "float8", _)             => t"Double"
+    case ColType(Types.BIGINT, "bigserial" | "bigint" | "int8", _)           => t"Long"
+    case ColType(Types.BIT | Types.BOOLEAN, "bool" | "boolean", _)           => t"Boolean"
+    case ColType(Types.INTEGER, _, _)                                        => t"Int"
+    case ColType(Types.VARCHAR, "character varying" | "text" | "varchar", _) => t"String"
+    case ColType(Types.DATE, "date", _)                                      => t"java.time.LocalDate"
   }
 
   /** Determine the base Scala default value for a column. If the columns is nullable, the expression returned from this
@@ -109,14 +109,18 @@ trait GenerationRules {
     */
   def baseColumnDefault(currentTableMetadata: TableMetadata, all: Seq[TableMetadata])
     : PartialFunction[MColumn, Term] = {
-    case ColType(Types.BIT, "bool", Some(AsBoolean(b)))      => Lit.Boolean(b)
-    case ColType(Types.INTEGER, _, Some(AsInt(i)))           => Lit.Int(i)
-    case ColType(Types.DOUBLE, "float8", Some(AsDouble(d)))  => Lit.Double(d)
-    case ColType(Types.NUMERIC, "numeric", Some(s))          => q"BigDecimal($s)"
-    case ColType(Types.VARCHAR, "varchar" | "text", Some(s)) =>
-      Lit.String(s.stripPrefix("'").stripSuffix("'"))
-    case ColType(Types.DATE, "date", Some("now()"))          =>
+    case ColType(Types.BIT, "boolean" | "bool", Some(AsBoolean(b)))              => Lit.Boolean(b)
+    case ColType(Types.INTEGER, _, Some(AsInt(i)))                               => Lit.Int(i)
+    case ColType(Types.DOUBLE, "double precision" | "float8", Some(AsDouble(d))) => Lit.Double(d)
+    case ColType(Types.NUMERIC, "numeric", Some(s))                              => q"BigDecimal($s)"
+    case ColType(Types.DATE, "date", Some("now()" | "LOCALTIMESTAMP"))           =>
       q"java.time.LocalDate.now()"
+    case ColType(
+          Types.VARCHAR,
+          "character varying" | "text" | "varchar",
+          Some(s)
+        ) =>
+      Lit.String(s.stripPrefix("'").stripSuffix("'"))
   }
 
   def columnConfig(column: MColumn, currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): ColumnConfig = {
@@ -155,7 +159,13 @@ trait GenerationRules {
                              cols <- t.getColumns
                              pks  <- t.getPrimaryKeys
                              fks  <- t.getImportedKeys
-                           } yield TableMetadata(t, cols, pks, fks)
+                           } yield
+                           TableMetadata(
+                             table = t,
+                             columns = cols,
+                             primaryKeys = pks,
+                             foreignKeys = fks
+                           )
                          }
                        )
     } yield infos.map(tableConfig(_, infos))

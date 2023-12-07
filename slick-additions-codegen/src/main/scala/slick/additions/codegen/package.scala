@@ -26,7 +26,7 @@ package object codegen {
   val AsDouble = new TryExtractor(_.toDouble)
 
   object ColType {
-    def unapply(col: MColumn) = Some((col.sqlType, col.typeName, col.columnDef))
+    def unapply(col: MColumn) = Some((col.sqlType, col.typeName.toLowerCase, col.columnDef))
   }
 
   implicit class scalametaDefnClassExtensionMethods(private val self: Defn.Class) extends AnyVal {
