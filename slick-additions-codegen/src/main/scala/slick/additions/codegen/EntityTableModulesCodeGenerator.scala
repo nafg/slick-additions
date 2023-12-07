@@ -30,6 +30,8 @@ class EntityTableModulesCodeGenerator extends TablesCodeGenerator {
       """.stats
   }
 
+  override def mappingType(rowClassType: Type.Name) = t"slick.lifted.MappedProjection[$rowClassType]"
+
   override def tableStats = {
     case tableConfig @ TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
       columns.partition(c => tableMetadata.primaryKeys.exists(_.column == c.column.name)) match {

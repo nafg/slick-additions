@@ -1,4 +1,4 @@
-import _root_.io.github.nafg.mergify.dsl._
+import _root_.io.github.nafg.mergify.dsl.*
 
 
 mergifyExtraConditions := Seq(
@@ -19,6 +19,22 @@ inThisBuild(List(
   dynverGitDescribeOutput ~= (_.map(o => o.copy(dirtySuffix = sbtdynver.GitDirtySuffix("")))),
   dynverSonatypeSnapshots             := true,
   githubWorkflowTargetTags ++= Seq("v*"),
+  githubWorkflowBuildPostamble ++=
+    Seq(
+      WorkflowStep.Sbt(
+        commands = List(
+          "slick-additions-codegen/Test/runMain slick.additions.codegen.CodeGen",
+          "test-codegen/compile"
+        ),
+        name = Some("Check that codegen output compiles")
+      ),
+      WorkflowStep.Run(
+        commands = List(
+          "git diff --exit-code --quiet HEAD slick-additions-codegen/src/test/resources"
+        ),
+        name = Some("Check that codegen output hasn't changed")
+      )
+    ),
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowPublish               := Seq(
     WorkflowStep.Sbt(

@@ -1,12 +1,11 @@
-package com.acme.tables
+package plain
 import slick.jdbc.H2Profile.api._
-import slick.additions.entity.Lookup
 object Tables {
   class Colors(_tableTag: Tag)
       extends Table[ColorsRow](_tableTag, Some("PUBLIC"), "colors") {
     val id   = column[Long]("id")
     val name = column[String]("name")
-    def * : MappedProjection[ColorsRow] = (id, name).<>(
+    def * : slick.lifted.ProvenShape[ColorsRow] = (id, name).<>(
       {
         (ColorsRow.apply _).tupled
       },
@@ -22,7 +21,7 @@ object Tables {
     val city       = column[String]("city")
     val dateJoined = column[java.time.LocalDate]("date_joined")
     val balance    = column[BigDecimal]("balance")
-    val bestFriend = column[Option[Lookup[Long, PeopleRow]]]("best_friend")
+    val bestFriend = column[Option[Long]]("best_friend")
     val col8       = column[Option[Double]]("col8")
     val col9       = column[Option[Boolean]]("col9")
     val col10      = column[Option[Int]]("col10")
@@ -40,7 +39,7 @@ object Tables {
     val col22      = column[Option[Int]]("col22")
     val col23      = column[Option[Int]]("col23")
     val col24      = column[Option[Int]]("col24")
-    def * : MappedProjection[PeopleRow] = (
+    def * : slick.lifted.ProvenShape[PeopleRow] = (
       (
         id,
         first,

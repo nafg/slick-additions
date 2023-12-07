@@ -1,4 +1,4 @@
-package com.acme.tablemodules
+package entity
 import slick.additions.AdditionsProfile
 import slick.lifted.MappedProjection
 trait SlickProfile extends slick.jdbc.H2Profile with AdditionsProfile {
@@ -13,7 +13,7 @@ object TableModules {
     class Row(tag: Tag) extends BaseEntRow(tag) {
       override def keyColumnName = "id"
       val name                   = column[String]("name")
-      def mapping: MappedProjection[ColorsRow] = name.<>(
+      def mapping: slick.lifted.MappedProjection[ColorsRow] = name.<>(
         {
           ColorsRow.apply
         },
@@ -47,7 +47,7 @@ object TableModules {
       val col22      = column[Option[Int]]("col22")
       val col23      = column[Option[Int]]("col23")
       val col24      = column[Option[Int]]("col24")
-      def mapping: MappedProjection[PeopleRow] = (
+      def mapping: slick.lifted.MappedProjection[PeopleRow] = (
         (
           first,
           last,
