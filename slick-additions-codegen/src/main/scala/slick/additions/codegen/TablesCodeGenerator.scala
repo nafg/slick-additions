@@ -53,7 +53,7 @@ class TablesCodeGenerator extends BaseCodeGenerator {
         (group22[Term](terms)(Term.Tuple(_)), fac, extractor)
       }
 
-    q"def $mappingName: MappedProjection[$rowClassType, ?] = $tuple.<>({$factory}, $extractor)"
+    q"def $mappingName: MappedProjection[$rowClassType] = $tuple.<>({$factory}, $extractor)"
   }
 
   def columnField: ColumnConfig => Stat = {
