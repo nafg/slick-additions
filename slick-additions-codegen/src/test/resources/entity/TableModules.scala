@@ -14,7 +14,7 @@ object TableModules {
       override def keyColumnName = "id"
       val name                   = column[String]("name")
       def mapping: slick.lifted.MappedProjection[ColorsRow] =
-        name.<>(ColorsRow.apply, ColorsRow.unapply)
+        name.mapTo[ColorsRow]
     }
   }
   object People extends EntityTableModule[Long, PeopleRow]("people") {

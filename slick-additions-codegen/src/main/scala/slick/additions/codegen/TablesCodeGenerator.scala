@@ -23,19 +23,19 @@ class TablesCodeGenerator extends BaseCodeGenerator {
       .typeApply(rowClassType)
 
   def mkMapping(rowClassName: String, mappingName: String, columns: List[ColumnConfig]) = {
-    val companion                   = Term.Name(rowClassName)
-    val rowClassType                = Type.Name(rowClassName)
-    val terms                       = columns.map(_.tableFieldTerm)
-    val numCols                     = columns.length
-    val (tuple, factory, extractor) =
+    val companion    = Term.Name(rowClassName)
+    val rowClassType = Type.Name(rowClassName)
+    val terms        = columns.map(_.tableFieldTerm)
+    val numCols      = columns.length
+    val rhs          =
       if (numCols == 1)
-        (terms.head, companion.termSelect("apply"), companion.termSelect("unapply"))
+        terms.head
+          .termSelect("mapTo")
+          .termApplyType(rowClassType)
       else if (numCols <= 22)
-        (
-          Term.Tuple(terms),
-          Term.Eta(companion.termSelect("apply")).termSelect("tupled"),
-          companion.termSelect("unapply")
-        )
+        Term.Tuple(terms)
+          .termSelect("mapTo")
+          .termApplyType(rowClassType)
       else {
         @tailrec
         def group22[A](values: List[A])(group: List[A] => A): A =
@@ -64,13 +64,13 @@ class TablesCodeGenerator extends BaseCodeGenerator {
             term"Some".termApply(res)
           )
 
-        (group22[Term](terms)(Term.Tuple(_)), fac, extractor)
+        group22[Term](terms)(Term.Tuple(_))
+          .termSelect("<>")
+          .termApply(fac, extractor)
       }
 
     defDef(mappingName, declaredType = Some(mappingType(rowClassType)))()(
-      tuple
-        .termSelect("<>")
-        .termApply(factory, extractor)
+      rhs
     )
   }
 
