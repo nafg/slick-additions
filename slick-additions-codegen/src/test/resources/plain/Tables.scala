@@ -5,12 +5,8 @@ object Tables {
       extends Table[ColorsRow](_tableTag, Some("PUBLIC"), "colors") {
     val id   = column[Long]("id")
     val name = column[String]("name")
-    def * : slick.lifted.ProvenShape[ColorsRow] = (id, name).<>(
-      {
-        (ColorsRow.apply _).tupled
-      },
-      ColorsRow.unapply
-    )
+    def * : slick.lifted.ProvenShape[ColorsRow] =
+      (id, name).<>((ColorsRow.apply _).tupled, ColorsRow.unapply)
   }
   lazy val Colors = TableQuery[Colors]
   class People(_tableTag: Tag)
@@ -68,62 +64,60 @@ object Tables {
       col24
     ).<>(
       {
-        {
-          case (
-                (
-                  id,
-                  first,
-                  last,
-                  city,
-                  dateJoined,
-                  balance,
-                  bestFriend,
-                  col8,
-                  col9,
-                  col10,
-                  col11,
-                  col12,
-                  col13,
-                  col14,
-                  col15,
-                  col16,
-                  col17,
-                  col18,
-                  col19,
-                  col20,
-                  col21,
-                  col22
-                ),
-                col23,
-                col24
-              ) =>
-            PeopleRow(
-              id,
-              first,
-              last,
-              city,
-              dateJoined,
-              balance,
-              bestFriend,
-              col8,
-              col9,
-              col10,
-              col11,
-              col12,
-              col13,
-              col14,
-              col15,
-              col16,
-              col17,
-              col18,
-              col19,
-              col20,
-              col21,
-              col22,
+        case (
+              (
+                id,
+                first,
+                last,
+                city,
+                dateJoined,
+                balance,
+                bestFriend,
+                col8,
+                col9,
+                col10,
+                col11,
+                col12,
+                col13,
+                col14,
+                col15,
+                col16,
+                col17,
+                col18,
+                col19,
+                col20,
+                col21,
+                col22
+              ),
               col23,
               col24
-            )
-        }
+            ) =>
+          PeopleRow(
+            id,
+            first,
+            last,
+            city,
+            dateJoined,
+            balance,
+            bestFriend,
+            col8,
+            col9,
+            col10,
+            col11,
+            col12,
+            col13,
+            col14,
+            col15,
+            col16,
+            col17,
+            col18,
+            col19,
+            col20,
+            col21,
+            col22,
+            col23,
+            col24
+          )
       },
       (rec: PeopleRow) =>
         Some(

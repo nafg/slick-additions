@@ -70,7 +70,7 @@ class TablesCodeGenerator extends BaseCodeGenerator {
     defDef(mappingName, declaredType = Some(mappingType(rowClassType)))()(
       tuple
         .termSelect("<>")
-        .termApply(Term.Block(List(factory)), extractor)
+        .termApply(factory, extractor)
     )
   }
 

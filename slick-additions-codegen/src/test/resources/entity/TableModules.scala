@@ -13,12 +13,8 @@ object TableModules {
     class Row(tag: Tag) extends BaseEntRow(tag) {
       override def keyColumnName = "id"
       val name                   = column[String]("name")
-      def mapping: slick.lifted.MappedProjection[ColorsRow] = name.<>(
-        {
-          ColorsRow.apply
-        },
-        ColorsRow.unapply
-      )
+      def mapping: slick.lifted.MappedProjection[ColorsRow] =
+        name.<>(ColorsRow.apply, ColorsRow.unapply)
     }
   }
   object People extends EntityTableModule[Long, PeopleRow]("people") {
@@ -75,60 +71,58 @@ object TableModules {
         col24
       ).<>(
         {
-          {
-            case (
-                  (
-                    first,
-                    last,
-                    city,
-                    dateJoined,
-                    balance,
-                    bestFriend,
-                    col8,
-                    col9,
-                    col10,
-                    col11,
-                    col12,
-                    col13,
-                    col14,
-                    col15,
-                    col16,
-                    col17,
-                    col18,
-                    col19,
-                    col20,
-                    col21,
-                    col22,
-                    col23
-                  ),
-                  col24
-                ) =>
-              PeopleRow(
-                first,
-                last,
-                city,
-                dateJoined,
-                balance,
-                bestFriend,
-                col8,
-                col9,
-                col10,
-                col11,
-                col12,
-                col13,
-                col14,
-                col15,
-                col16,
-                col17,
-                col18,
-                col19,
-                col20,
-                col21,
-                col22,
-                col23,
+          case (
+                (
+                  first,
+                  last,
+                  city,
+                  dateJoined,
+                  balance,
+                  bestFriend,
+                  col8,
+                  col9,
+                  col10,
+                  col11,
+                  col12,
+                  col13,
+                  col14,
+                  col15,
+                  col16,
+                  col17,
+                  col18,
+                  col19,
+                  col20,
+                  col21,
+                  col22,
+                  col23
+                ),
                 col24
-              )
-          }
+              ) =>
+            PeopleRow(
+              first,
+              last,
+              city,
+              dateJoined,
+              balance,
+              bestFriend,
+              col8,
+              col9,
+              col10,
+              col11,
+              col12,
+              col13,
+              col14,
+              col15,
+              col16,
+              col17,
+              col18,
+              col19,
+              col20,
+              col21,
+              col22,
+              col23,
+              col24
+            )
         },
         (rec: PeopleRow) =>
           Some(
