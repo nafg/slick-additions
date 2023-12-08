@@ -3,6 +3,7 @@ package slick.additions.codegen
 import scala.concurrent.ExecutionContext
 import scala.meta._
 
+import slick.additions.codegen.ScalaMetaDsl.{defClass, termParam}
 import slick.jdbc.JdbcProfile
 
 
@@ -11,13 +12,15 @@ import slick.jdbc.JdbcProfile
 class ModelsCodeGenerator extends BaseCodeGenerator {
   protected def columnConfigs(tableConfig: TableConfig) = tableConfig.columns
 
-  protected def modelClass(tableConfig: TableConfig) = {
-    val params = columnConfigs(tableConfig).map { col =>
-      Term.Param(Nil, col.modelFieldTerm, Some(col.scalaType), col.scalaDefault)
-    }
-
-    q"case class ${Type.Name(tableConfig.modelClassName)}(..$params)"
-  }
+  protected def modelClass(tableConfig: TableConfig) =
+    defClass(
+      tableConfig.modelClassName,
+      modifiers = List(Mod.Case()),
+      params =
+        columnConfigs(tableConfig).map { col =>
+          termParam(col.modelFieldTerm, col.scalaType, default = col.scalaDefault)
+        }
+    )()
 
   protected def rowStats(tableConfig: TableConfig): List[Stat] = List(modelClass(tableConfig))
 
@@ -27,12 +30,13 @@ class ModelsCodeGenerator extends BaseCodeGenerator {
   )(implicit executionContext: ExecutionContext
   ) =
     rules.tableConfigs(slickProfileClass).map { tableConfigs =>
-      q"""
-        package ${toTermRef(rules.packageName)} {
-          ..${imports(rules.extraImports)}
+      val packageRef       = toTermRef(rules.packageName)
+      val importStatements = imports(rules.extraImports)
+      val tableRowStats    = tableConfigs.flatMap(rowStats)
 
-          ..${tableConfigs.flatMap(rowStats)}
-        }
-       """.syntax
+      Pkg(
+        ref = packageRef,
+        stats = importStatements ++ tableRowStats
+      ).syntax
     }
 }

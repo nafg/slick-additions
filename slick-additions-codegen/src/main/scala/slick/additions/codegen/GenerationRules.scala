@@ -6,6 +6,7 @@ import java.sql.Types
 import scala.concurrent.ExecutionContext
 import scala.meta._
 
+import slick.additions.codegen.ScalaMetaDsl._
 import slick.dbio.DBIO
 import slick.jdbc.JdbcProfile
 import slick.jdbc.meta._
@@ -86,14 +87,16 @@ trait GenerationRules {
     *   [[columnConfig]]
     */
   def baseColumnType(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): PartialFunction[MColumn, Type] = {
-    case ColType(_, "lo", _)                                                 => t"java.sql.Blob"
-    case ColType(Types.NUMERIC, "numeric", _)                                => t"BigDecimal"
-    case ColType(Types.DOUBLE, "double precision" | "float8", _)             => t"Double"
-    case ColType(Types.BIGINT, "bigserial" | "bigint" | "int8", _)           => t"Long"
-    case ColType(Types.BIT | Types.BOOLEAN, "bool" | "boolean", _)           => t"Boolean"
-    case ColType(Types.INTEGER, _, _)                                        => t"Int"
-    case ColType(Types.VARCHAR, "character varying" | "text" | "varchar", _) => t"String"
-    case ColType(Types.DATE, "date", _)                                      => t"java.time.LocalDate"
+    case ColType(Types.NUMERIC, "numeric", _)                                => typ"BigDecimal"
+    case ColType(Types.DOUBLE, "double precision" | "float8", _)             => typ"Double"
+    case ColType(Types.BIGINT, "bigserial" | "bigint" | "int8", _)           => typ"Long"
+    case ColType(Types.BIT | Types.BOOLEAN, "bool" | "boolean", _)           => typ"Boolean"
+    case ColType(Types.INTEGER, _, _)                                        => typ"Int"
+    case ColType(Types.VARCHAR, "character varying" | "text" | "varchar", _) => typ"String"
+    case ColType(Types.DATE, "date", _)                                      =>
+      term"java".termSelect(term"time").typeSelect(typ"LocalDate")
+    case ColType(_, "lo", _)                                                 =>
+      term"java".termSelect(term"sql").typeSelect(typ"Blob")
   }
 
   /** Determine the base Scala default value for a column. If the columns is nullable, the expression returned from this
@@ -112,9 +115,11 @@ trait GenerationRules {
     case ColType(Types.BIT, "boolean" | "bool", Some(AsBoolean(b)))              => Lit.Boolean(b)
     case ColType(Types.INTEGER, _, Some(AsInt(i)))                               => Lit.Int(i)
     case ColType(Types.DOUBLE, "double precision" | "float8", Some(AsDouble(d))) => Lit.Double(d)
-    case ColType(Types.NUMERIC, "numeric", Some(s))                              => q"BigDecimal($s)"
+    case ColType(Types.NUMERIC, "numeric", Some(s))                              =>
+      term"BigDecimal".termApply(Lit.String(s))
     case ColType(Types.DATE, "date", Some("now()" | "LOCALTIMESTAMP"))           =>
-      q"java.time.LocalDate.now()"
+      term"java".termSelect("time").termSelect("LocalDate").termSelect("now")
+        .termApply()
     case ColType(
           Types.VARCHAR,
           "character varying" | "text" | "varchar",
@@ -125,14 +130,16 @@ trait GenerationRules {
 
   def columnConfig(column: MColumn, currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): ColumnConfig = {
     val ident    = Term.Name(snakeToCamel(column.name))
-    val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(column, (_: MColumn) => t"Nothing")
+    val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(column, (_: MColumn) => typ"Nothing")
     val default0 = baseColumnDefault(currentTableMetadata, all).lift(column)
 
     val (typ, default) =
-      if (column.nullable.contains(true))
-        t"Option[$typ0]" -> Some(default0.map(t => q"Some($t)").getOrElse(q"None"))
+      if (!column.nullable.contains(true))
+        typ0                        -> default0
       else
-        typ0             -> default0
+        typ"Option".typeApply(typ0) ->
+          Some(default0.map(t => term"Some".termApply(t)).getOrElse(term"None"))
+
     ColumnConfig(column, ident, ident, typ, default)
   }
 
@@ -159,8 +166,7 @@ trait GenerationRules {
                              cols <- t.getColumns
                              pks  <- t.getPrimaryKeys
                              fks  <- t.getImportedKeys
-                           } yield
-                           TableMetadata(
+                           } yield TableMetadata(
                              table = t,
                              columns = cols,
                              primaryKeys = pks,

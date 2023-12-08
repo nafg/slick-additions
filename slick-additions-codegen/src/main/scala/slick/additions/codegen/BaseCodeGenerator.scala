@@ -6,6 +6,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.meta._
 
+import slick.additions.codegen.ScalaMetaDsl._
 import slick.dbio.DBIO
 import slick.jdbc.{JdbcBackend, JdbcProfile}
 
@@ -22,11 +23,14 @@ import org.scalafmt.config.ScalafmtConfig
   *   [[GenerationRules]]
   */
 trait BaseCodeGenerator {
-  private def toTermRef0(last: String, revInit: List[String]): Term.Ref =
-    revInit match {
-      case Nil     => Term.Name(last)
-      case x :: xs => Term.Select(toTermRef0(x, xs), Term.Name(last))
+  private def recursePathTerm[A <: C, C](xs: List[String], last: A)(g: (Term.Ref, A) => C): C =
+    xs match {
+      case Nil     => last
+      case x :: xs => g(toTermRef0(x, xs), last)
     }
+
+  private def toTermRef0(last: String, revInit: List[String]): Term.Ref =
+    recursePathTerm[Term.Name, Term.Ref](revInit, term"$last")(_.termSelect(_))
 
   protected def toTermRef(s: String): Term.Ref = {
     val last :: revInit = s.split('.').toList.reverse
@@ -35,17 +39,14 @@ trait BaseCodeGenerator {
 
   protected def toTypeRef(s: String): Type.Ref = {
     val last :: revInit = s.split('.').toList.reverse
-    revInit match {
-      case Nil     => Type.Name(last)
-      case x :: xs => Type.Select(toTermRef0(x, xs), Type.Name(last))
-    }
+    recursePathTerm[Type.Name, Type.Ref](revInit, typ"$last")(_.typeSelect(_))
   }
 
   protected def imports(strings: List[String]): List[Stat] =
     if (strings.isEmpty)
       Nil
     else
-      List(q"import ..${strings.map(_.parse[Importer].get)}")
+      List(Import(strings.map(_.parse[Importer].get)))
 
   def codeString(
     rules: GenerationRules,
