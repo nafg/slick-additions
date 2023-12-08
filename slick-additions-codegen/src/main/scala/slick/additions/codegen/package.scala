@@ -1,6 +1,5 @@
 package slick.additions
 
-import scala.meta.{Defn, Mod}
 import scala.util.Try
 
 import slick.jdbc.meta.MColumn
@@ -27,9 +26,5 @@ package object codegen {
 
   object ColType {
     def unapply(col: MColumn) = Some((col.sqlType, col.typeName.toLowerCase, col.columnDef))
-  }
-
-  implicit class scalametaDefnClassExtensionMethods(private val self: Defn.Class) extends AnyVal {
-    def withMod(mod: Mod) = self.copy(mods = mod +: self.mods)
   }
 }
