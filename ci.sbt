@@ -33,7 +33,8 @@ inThisBuild(List(
           "git diff --exit-code --quiet HEAD slick-additions-codegen/src/test/resources"
         ),
         name = Some("Check that codegen output hasn't changed")
-      )
+      ),
+      WorkflowStep.Run(List("mkdir -p slick-additions-entity/.js/target"))
     ),
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowPublish               := Seq(
