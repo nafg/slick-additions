@@ -7,7 +7,7 @@ import scala.language.implicitConversions
 import slick.additions.entity._
 import slick.ast._
 import slick.jdbc.JdbcProfile
-import slick.lifted.{AbstractTable, ForeignKeyQuery, MappedProjection, RepShape}
+import slick.lifted.{AbstractTable, ForeignKeyQuery, MappedProjection, RepShape, Shape}
 
 import sourcecode.Name
 
@@ -16,10 +16,6 @@ trait AdditionsProfile { this: JdbcProfile =>
   trait AdditionsApi { this: JdbcAPI =>
     implicit def lookupBaseColumnType[K: BaseColumnType, A]: BaseColumnType[Lookup[K, A]] =
       MappedColumnType.base[Lookup[K, A], K](_.key, EntityKey(_))
-
-    type Ent[T <: EntityTableBase]  = Entity[T#Key, T#Value]
-    type KEnt[T <: EntityTableBase] = KeyedEntity[T#Key, T#Value]
-    def Ent[T <: EntityTableBase](value: T#Value) = new KeylessEntity[T#Key, T#Value](value)
 
     trait KeyedTableBase { keyedTable: Table[_] =>
       type Key
@@ -81,14 +77,11 @@ trait AdditionsProfile { this: JdbcProfile =>
       override def lookupQuery(lookup: Lookup)       = this.filter(_.key === lookup.key)
       override def lookupValue(a: KeyedEntity[K, V]) = a.value
 
-      implicit val mappingRepShape: Shape[FlatShapeLevel, MappedProjection[V], V, MappedProjection[V]] =
-        RepShape[FlatShapeLevel, MappedProjection[V], V]
-
       def forInsertQuery[E, C[_]](q: Query[T, E, C]) = q.map(_.mapping)
 
       def insert(v: V)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] = insert(Ent(v): Ent)
 
-      def insert(e: Ent)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]]   = {
+      def insert(e: Ent)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] = {
         // Insert it and get the new or old key
         val action = e match {
           case ke: this.KEnt =>
@@ -98,6 +91,7 @@ trait AdditionsProfile { this: JdbcProfile =>
         }
         action.map(SavedEntity(_, e.value))
       }
+
       def update(ke: KEnt)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] =
         forInsertQuery(lookupQuery(ke)).update(ke.value)
           .map(_ => SavedEntity(ke.key, ke.value))
@@ -164,22 +158,14 @@ trait AdditionsProfile { this: JdbcProfile =>
 
       type Row <: BaseEntRow
 
-      import scala.reflect.runtime.universe._
-
-
-      protected def rowClassMirror: ClassMirror = {
-        val m            = runtimeMirror(this.getClass.getClassLoader)
-        val thisAsSymbol = m.moduleSymbol(this.getClass)
-        m.reflectClass(thisAsSymbol.info.member(TypeName("Row")).asClass)
+      protected def rowClass: Class[_] = {
+        val className = this.getClass.getName + "$Row"
+        Class.forName(className, true, this.getClass.getClassLoader)
       }
 
-      protected def rowConstructorMirror: MethodMirror =
-        rowClassMirror.reflectConstructor(rowClassMirror.symbol.primaryConstructor.asMethod)
+      protected def rowConstructor = rowClass.getDeclaredConstructors.head
 
-      protected def mkRow: Tag => Row = {
-        val ctor = rowConstructorMirror
-        tag => ctor.apply(tag).asInstanceOf[Row]
-      }
+      protected def mkRow(tag: Tag): Row = rowConstructor.newInstance(tag).asInstanceOf[Row]
 
       class TableQuery extends EntTableQuery[K, V, Row](mkRow)
 

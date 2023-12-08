@@ -1,9 +1,7 @@
 package entity
-import slick.additions.entity.Lookup, io.circe.generic.JsonCodec,
-  monocle.macros.Lenses
-@JsonCodec @Lenses case class ColorsRow(name: String)
-object ColorsRow
-@JsonCodec @Lenses case class PeopleRow(
+import slick.additions.entity.Lookup
+case class ColorsRow(name: String)
+case class PeopleRow(
     first: String,
     last: String,
     city: String = "New York",
@@ -28,4 +26,3 @@ object ColorsRow
     col23: Option[Int] = None,
     col24: Option[Int] = None
 )
-object PeopleRow

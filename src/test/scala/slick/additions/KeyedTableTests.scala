@@ -2,42 +2,43 @@ package slick.additions
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import slick.additions.test.TestsCommon
 import slick.additions.test.TestProfile.api._
+import slick.additions.test.TestsCommon
 
 import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 
+case class Phone(kind: String, number: String, person: Option[People.Lookup] = None)
+class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones")           {
+  def tableQuery = Phones
+  def person     = column[Option[People.Lookup]]("person_id")
+  def kind       = column[String]("kind")
+  def number     = column[String]("number")
+  def mapping    = (kind, number, person).mapTo[Phone]
+}
+object Phones          extends EntTableQuery[Long, Phone, Phones](new Phones(_)) {
+  def countAction(phone: Phone) = Phones.filter(_.number === phone.number).length.result
+}
+
+case class Person(first: String, last: String)
+class People(tag: Tag) extends EntityTable[Long, Person](tag, "people") {
+  def tableQuery = People
+
+  def first = column[String]("first")
+  def last  = column[String]("last")
+
+  def mapping = (first, last).mapTo[Person]
+}
+object People          extends EntTableQuery[Long, Person, People](new People(_))
+
 class KeyedTableTests extends AnyFunSuite with Matchers with TestsCommon with IntegrationPatience {
-  case class Phone(kind: String, number: String, person: Option[People.Lookup] = None)
-  class Phones(tag: Tag) extends EntityTable[Long, Phone](tag, "phones") {
-    def tableQuery = Phones
-    def person     = column[Option[People.Lookup]]("person_id")
-    def kind       = column[String]("kind")
-    def number     = column[String]("number")
-    def mapping    = (kind, number, person).mapTo[Phone]
-  }
-  object Phones          extends EntTableQuery[Long, Phone, Phones](new Phones(_))
-
-  case class Person(first: String, last: String)
-  class People(tag: Tag) extends EntityTable[Long, Person](tag, "people") {
-    def tableQuery = People
-
-    def first = column[String]("first")
-    def last  = column[String]("last")
-
-    def mapping = (first, last).mapTo[Person]
-  }
-
-  object People extends EntTableQuery[Long, Person, People](new People(_))
-
   val schema = Phones.schema ++ People.schema
 
   test("EntTableQuery#insert(KeylessEntity) does not insert twice [regression]") {
     val phone       = Phone("main", "1407124383")
-    val countAction = Phones.filter(_.number === phone.number).length.result
+    val countAction = Phones.countAction(phone)
     assert(db.run(countAction).futureValue == 0)
     assert(db.run(Phones.insert(phone) >> countAction).futureValue == 1)
   }
