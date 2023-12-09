@@ -3,7 +3,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
 name := "slick-additions"
 
-ThisBuild / crossScalaVersions := Seq("2.13.12", "3.3.0")
+ThisBuild / crossScalaVersions := Seq("2.13.12", "3.3.1")
 ThisBuild / scalaVersion       := (ThisBuild / crossScalaVersions).value.last
 ThisBuild / organization       := "io.github.nafg"
 ThisBuild / scalacOptions ++= Seq("-deprecation", "-unchecked")
