@@ -17,7 +17,7 @@ val slickVersion = "3.5.0-M5"
 lazy val `slick-additions` =
   (project in file("."))
     .dependsOn(`slick-additions-entity`.jvm)
-//    .aggregate(`slick-additions-entity`.jvm, `slick-additions-entity`.js, `slick-additions-codegen`)
+    .aggregate(`slick-additions-entity`.jvm, `slick-additions-entity`.js, `slick-additions-codegen`)
     .settings(
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick"           % slickVersion,
