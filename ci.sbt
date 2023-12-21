@@ -36,6 +36,7 @@ inThisBuild(List(
       ),
       WorkflowStep.Run(List("mkdir -p slick-additions-entity/.js/target"))
     ),
+  githubWorkflowJavaVersions          := Seq(JavaSpec.temurin("11")),
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowPublish               := Seq(
     WorkflowStep.Sbt(
