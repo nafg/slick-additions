@@ -41,12 +41,20 @@ trait AdditionsProfile { this: JdbcProfile =>
       type Value = V
       def Ent(v: Value) = new KeylessEntity[Key, Value](v)
 
+      @deprecated("Using key in an EntityTable is unsupported and may lead to crashes", "0.13.0")
+      override def key = super.key
+
       def tableQuery: Query[EntityTable[K, V], this.KEnt, Seq]
 
       def mapping: MappedProjection[V]
 
       private def all: MappedProjection[KeyedEntity[K, V]] =
-        (key, mapping).<>((KeyedEntity.apply[K, V] _).tupled, KeyedEntity.unapply[K, V])
+        (lookup, mapping).<>(
+          {
+            case (l, v) => KeyedEntity(l.key, v)
+          },
+          ke => Some((ke.toEntityKey.asLookup, ke.value))
+        )
 
       def * = all
 
@@ -74,7 +82,7 @@ trait AdditionsProfile { this: JdbcProfile =>
       type KEnt  = KeyedEntity[Key, Value]
       def Ent(v: V): Ent = new KeylessEntity[Key, Value](v)
 
-      override def lookupQuery(lookup: Lookup)       = this.filter(_.key === lookup.key)
+      override def lookupQuery(lookup: Lookup)       = this.filter(_.lookup === lookup.asLookup)
       override def lookupValue(a: KeyedEntity[K, V]) = a.value
 
       def forInsertQuery[E, C[_]](q: Query[T, E, C]) = q.map(_.mapping)
@@ -85,11 +93,11 @@ trait AdditionsProfile { this: JdbcProfile =>
         // Insert it and get the new or old key
         val action = e match {
           case ke: this.KEnt =>
-            this returning this.map(_.key: Rep[Key]) forceInsert ke
+            this returning this.map(_.lookup) forceInsert ke
           case ent: this.Ent =>
-            forInsertQuery(this).returning(this.map(_.key)) += ent.value
+            forInsertQuery(this).returning(this.map(_.lookup)) += ent.value
         }
-        action.map(SavedEntity(_, e.value))
+        action.map(l => SavedEntity(l.key, e.value))
       }
 
       def update(ke: KEnt)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] =
