@@ -20,6 +20,7 @@ sealed trait Lookup[K, +A] extends EntityRef[K, A] {
   def valueOption: Option[A] = foldLookup(_ => None, ke => Some(ke.value))
 
   def sameKey[B](that: Lookup[K, B])(implicit ev: A <:< B) = this.key == that.key
+  def =#=[B](that: Lookup[K, B])(implicit ev: A <:< B)     = sameKey(that)
 
   def toEntityKey: EntityKey[K, A]
 }
