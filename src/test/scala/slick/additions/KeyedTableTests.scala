@@ -2,6 +2,7 @@ package slick.additions
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import slick.additions.entity.EntityKey
 import slick.additions.test.TestProfile.api._
 import slick.additions.test.TestsCommon
 
@@ -58,5 +59,14 @@ class KeyedTableTests extends AnyFunSuite with Matchers with TestsCommon with In
 
   test("lookup.inSet with non-empty doesn't crash") {
     People.map(_.lookup.inSet(Seq(People.Lookup(1L))))
+  }
+
+  test("Using lookup in a predicate doesn't pollute the * projection") {
+    val res = db run (for {
+      _  <- People.map(_.mapping) += Person("first", "last")
+      cs <- People.filter(people => people.lookup === EntityKey[Long, Person](1).asLookup).result.head
+      k   = cs.key
+    } yield k)
+    assert(res.futureValue.isInstanceOf[Long])
   }
 }
