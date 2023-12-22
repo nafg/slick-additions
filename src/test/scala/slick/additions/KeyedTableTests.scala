@@ -2,6 +2,7 @@ package slick.additions
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import slick.additions.entity.EntityKey
 import slick.additions.test.TestProfile.api._
 import slick.additions.test.TestsCommon
 
@@ -45,8 +46,8 @@ class KeyedTableTests extends AnyFunSuite with Matchers with TestsCommon with In
 
   test("Using lookup in a query") {
     val res = db run (for {
-      id <- People.map(_.mapping) returning People.map(_.key) += Person("first1", "last1")
-      _  <- Phones.map(_.mapping) += Phone("M", "111", Some(People.Lookup(id)))
+      id <- People.map(_.mapping) returning People.map(_.lookup) += Person("first1", "last1")
+      _  <- Phones.map(_.mapping) += Phone("M", "111", Some(id))
       xs <- People.filter(_.lookup in Phones.map(_.person)).result
     } yield xs)
     res.futureValue
@@ -58,5 +59,15 @@ class KeyedTableTests extends AnyFunSuite with Matchers with TestsCommon with In
 
   test("lookup.inSet with non-empty doesn't crash") {
     People.map(_.lookup.inSet(Seq(People.Lookup(1L))))
+  }
+
+  test("Using lookup in a predicate doesn't pollute the * projection") {
+    // noinspection SimplifyBoolean
+    val res = db run (for {
+      _  <- People.map(_.mapping) += Person("first", "last")
+      cs <- People.filter(people => people.lookup === EntityKey[Long, Person](1).asLookup || true).result.head
+      k   = cs.key
+    } yield k)
+    assert(res.futureValue.isInstanceOf[Long])
   }
 }
