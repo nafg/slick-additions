@@ -159,7 +159,7 @@ trait AdditionsProfile { this: JdbcProfile =>
       type Row <: BaseEntRow
 
       protected def rowClass: Class[_] = {
-        val className = this.getClass.getName + "$Row"
+        val className = this.getClass.getName.stripSuffix("$") + "$Row"
         Class.forName(className, true, this.getClass.getClassLoader)
       }
 
