@@ -11,6 +11,9 @@ sealed trait Lookup[K, +A] extends EntityRef[K, A] {
   override def transform[B](f: A => B): Lookup[K, B]
   override def updated[B](value: B): Lookup[K, B]
   override def widen[B >: A]: Lookup[K, B]
+
+  def asLookup: Lookup[K, A] = this
+
   def foldLookup[X](key: EntityKey[K, A] => X, ent: KeyedEntity[K, A] => X): X =
     this match {
       case ek: EntityKey[K, A]   => key(ek)
@@ -76,7 +79,6 @@ sealed trait KeyedEntity[K, +A]                                              ext
   override def updated[B](value: B): ModifiedEntity[K, B] = ModifiedEntity(key, value)
 
   def toSaved: SavedEntity[K, A]            = SavedEntity(key, value)
-  def asLookup: Lookup[K, A]                = this
   override def toEntityKey: EntityKey[K, A] = EntityKey(key)
 }
 object KeyedEntity {
