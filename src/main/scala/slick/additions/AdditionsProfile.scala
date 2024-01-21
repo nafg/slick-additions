@@ -42,7 +42,7 @@ trait AdditionsProfile { this: JdbcProfile =>
       def Ent(v: Value) = new KeylessEntity[Key, Value](v)
 
       @deprecated("Using key in an EntityTable is unsupported and may lead to crashes", "0.13.0")
-      override def key = super.key
+      override def key = lookup.asColumnOf[Key]
 
       def tableQuery: Query[EntityTable[K, V], this.KEnt, Seq]
 
