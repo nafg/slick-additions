@@ -157,6 +157,7 @@ trait AdditionsProfile { this: JdbcProfile =>
       type Rec
       type Row <: Table[Rec]
       val Q: TableQuery[Row]
+      type Q = Query[Row, Rec, Seq]
     }
 
     abstract class EntityTableModule[K: BaseColumnType, V](tableName: String) extends TableModule {
