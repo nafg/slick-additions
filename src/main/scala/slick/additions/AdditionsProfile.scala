@@ -82,6 +82,8 @@ trait AdditionsProfile { this: JdbcProfile =>
       type KEnt  = KeyedEntity[Key, Value]
       def Ent(v: V): Ent = new KeylessEntity[Key, Value](v)
 
+      def lookupQuery(lookup: Rep[Lookup]) = this.filter(_.lookup === lookup)
+
       override def lookupQuery(lookup: Lookup)       = this.filter(_.lookup === lookup)
       override def lookupValue(a: KeyedEntity[K, V]) = a.value
 
