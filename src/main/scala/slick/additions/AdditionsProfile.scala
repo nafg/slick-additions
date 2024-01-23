@@ -163,6 +163,8 @@ trait AdditionsProfile { this: JdbcProfile =>
     abstract class EntityTableModule[K: BaseColumnType, V](tableName: String) extends TableModule {
       type Rec = KeyedEntity[K, V]
 
+      type Lookup = slick.additions.entity.Lookup[K, V]
+
       abstract class BaseEntRow(tag: Tag) extends EntityTable[K, V](tag, tableName) with AutoNameSnakify {
         def tableQuery = EntityTableModule.this.Q
       }
