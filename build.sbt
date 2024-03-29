@@ -12,7 +12,7 @@ lazy val `slick-additions-entity` =
   crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Pure)
     .settings()
 
-val slickVersion = "3.5.0-RC1"
+val slickVersion = "3.5.0"
 
 lazy val `slick-additions` =
   (project in file("."))
@@ -24,7 +24,7 @@ lazy val `slick-additions` =
         "com.lihaoyi"        %% "sourcecode"      % "0.3.1",
         "org.scalatest"      %% "scalatest"       % "3.2.18"  % "test",
         "com.h2database"      % "h2"              % "2.2.224" % "test",
-        "ch.qos.logback"      % "logback-classic" % "1.5.0"   % "test"
+        "ch.qos.logback"      % "logback-classic" % "1.5.3"   % "test"
       )
     )
 
@@ -33,7 +33,7 @@ lazy val `slick-additions-codegen` =
     .settings(
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
-        ("org.scalameta"     %% "scalameta"      % "4.9.0")
+        ("org.scalameta"     %% "scalameta"      % "4.9.2")
           .cross(CrossVersion.for3Use2_13).exclude("org.scala-lang.modules", "scala-collection-compat_2.13"),
         ("org.scalameta"     %% "scalafmt-core"  % "3.8.0")
           .cross(CrossVersion.for3Use2_13).exclude("org.scala-lang.modules", "scala-collection-compat_2.13"),
