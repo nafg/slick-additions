@@ -22,7 +22,7 @@ lazy val `slick-additions` =
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick"           % slickVersion,
         "com.lihaoyi"        %% "sourcecode"      % "0.4.2",
-        "org.scalatest"      %% "scalatest"       % "3.2.18"  % "test",
+        "org.scalatest"      %% "scalatest"       % "3.2.19"  % "test",
         "com.h2database"      % "h2"              % "2.2.224" % "test",
         "ch.qos.logback"      % "logback-classic" % "1.5.6"   % "test"
       )
@@ -38,7 +38,7 @@ lazy val `slick-additions-codegen` =
         ("org.scalameta"     %% "scalafmt-core"  % "3.8.2")
           .cross(CrossVersion.for3Use2_13).exclude("org.scala-lang.modules", "scala-collection-compat_2.13"),
         "com.h2database"      % "h2"             % "2.2.224" % "test",
-        "org.scalatest"      %% "scalatest"      % "3.2.18"  % "test"
+        "org.scalatest"      %% "scalatest"      % "3.2.19"  % "test"
       )
     )
 
