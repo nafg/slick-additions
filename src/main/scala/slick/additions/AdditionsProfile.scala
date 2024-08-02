@@ -112,7 +112,7 @@ trait AdditionsProfile { this: JdbcProfile =>
           case ke: Ent  => insert(ke)
         }
 
-      def delete(ke: KEnt)(implicit ec: ExecutionContext) = lookupQuery(ke).delete
+      def delete(ke: Lookup)(implicit ec: ExecutionContext) = lookupQuery(ke).delete
     }
 
     trait AutoName { this: Table[_] =>
