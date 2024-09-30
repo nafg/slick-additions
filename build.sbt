@@ -12,7 +12,7 @@ lazy val `slick-additions-entity` =
   crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Pure)
     .settings()
 
-val slickVersion = "3.5.1"
+val slickVersion = "3.5.2"
 
 lazy val `slick-additions` =
   (project in file("."))
