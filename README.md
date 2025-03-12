@@ -12,8 +12,8 @@ so you may need to add `ThisBuild / useJCenter := true` to your build.
 This module actually does not depend on Slick.
 
 ```scala
-libraryDependencies += "io.github.nafg" %% "slick-additions-entity" % "0.12.0"
-libraryDependencies += "io.github.nafg" %%% "slick-additions-entity" % "0.12.0"  // for Scala.js
+libraryDependencies += "io.github.nafg" %% "slick-additions-entity" % "latest.release"
+libraryDependencies += "io.github.nafg" %%% "slick-additions-entity" % "latest.release"  // for Scala.js
 ```
 
 It defines abstractions to separate unsafe, low-level database implementation details from your models.
@@ -72,7 +72,7 @@ If you need to make a change that shouldn't clear its "saved" status, use `trans
 
 ```scala
 // In build.sbt
-libraryDependencies += "io.github.nafg" %% "slick-additions" % "0.12.0"
+libraryDependencies += "io.github.nafg" %% "slick-additions" % "latest.release"
 
 // In your codebase, use a custom Profile. For example:
 import slick.jdbc._
@@ -160,7 +160,7 @@ Example usage:
 
 ```scala
 // In build.sbt
-libraryDependencies += "io.github.nafg" %% "slick-additions-codegen" % "0.12.0"
+libraryDependencies += "io.github.nafg" %% "slick-additions-codegen" % "latest.release"
 
 
 import com.typesafe.config.ConfigFactory
