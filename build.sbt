@@ -53,3 +53,13 @@ lazy val `test-codegen` =
         "com.typesafe.slick" %% "slick" % slickVersion
       )
     )
+
+lazy val `slick-additions-testcontainers` =
+  project
+    .settings(
+      libraryDependencies ++= Seq(
+        "com.typesafe"        % "config"     % "1.4.3",
+        "com.typesafe.slick" %% "slick"      % slickVersion,
+        "org.testcontainers"  % "postgresql" % "1.20.6"
+      )
+    )
