@@ -1,6 +1,6 @@
 package slick.additions.codegen
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Paths
 
 import scala.concurrent.{ExecutionContext, Future}
 

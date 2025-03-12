@@ -2,7 +2,7 @@ package slick.additions.codegen
 
 case class CodeGeneration(generator: BaseCodeGenerator, rules: GenerationRules) {
   def pkgName          = rules.packageName
-  val filename: String = s"${pkgName}/${rules.container}.scala"
+  val filename: String = s"$pkgName/${rules.container}.scala"
 }
 object CodeGeneration                                                           {
   class TestGenerationRules(override val container: String, override val packageName: String)
