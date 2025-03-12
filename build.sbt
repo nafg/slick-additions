@@ -12,18 +12,12 @@ lazy val `slick-additions-entity` =
   crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Pure)
     .settings()
 
-val slickVersion = "3.6.0"
+val slickVersion = "3.5.2"
 
 lazy val `slick-additions` =
   (project in file("."))
     .dependsOn(`slick-additions-entity`.jvm)
-    .aggregate(
-      `slick-additions-entity`.jvm,
-      `slick-additions-entity`.js,
-      `slick-additions-codegen`,
-      `slick-additions-testcontainers`,
-      `test-codegen`
-    )
+    .aggregate(`slick-additions-entity`.jvm, `slick-additions-entity`.js, `slick-additions-codegen`)
     .settings(
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick"           % slickVersion,
@@ -41,7 +35,7 @@ lazy val `slick-additions-codegen` =
         "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
         ("org.scalameta"     %% "scalameta"      % "4.13.3")
           .cross(CrossVersion.for3Use2_13),
-        ("org.scalameta"     %% "scalafmt-core"  % "3.9.3")
+        ("org.scalameta"     %% "scalafmt-core"  % "3.8.3")
           .cross(CrossVersion.for3Use2_13),
         "com.h2database"      % "h2"             % "2.3.232" % "test",
         "org.scalatest"      %% "scalatest"      % "3.2.19"  % "test"
@@ -51,21 +45,11 @@ lazy val `slick-additions-codegen` =
 lazy val `test-codegen` =
   project
     .in(`slick-additions-codegen`.base / "src" / "test" / "resources")
-    .dependsOn(LocalProject("slick-additions"))
+    .dependsOn(`slick-additions`)
     .settings(
       publish / skip                       := true,
       Compile / unmanagedSourceDirectories := Seq(baseDirectory.value),
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick" % slickVersion
-      )
-    )
-
-lazy val `slick-additions-testcontainers` =
-  project
-    .settings(
-      libraryDependencies ++= Seq(
-        "com.typesafe"        % "config"     % "1.4.3",
-        "com.typesafe.slick" %% "slick"      % slickVersion,
-        "org.testcontainers"  % "postgresql" % "1.20.6"
       )
     )
