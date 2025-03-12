@@ -20,23 +20,23 @@ inThisBuild(List(
   dynverSonatypeSnapshots             := true,
   githubWorkflowScalaVersions         := List("2.13.x", "3.x"),
   githubWorkflowTargetTags ++= Seq("v*"),
-  githubWorkflowBuildPostamble ++=
-    Seq(
-      WorkflowStep.Sbt(
-        commands = List(
-          "slick-additions-codegen/Test/runMain slick.additions.codegen.CodeGen",
-          "test-codegen/compile"
-        ),
-        name = Some("Check that codegen output compiles")
+  githubWorkflowBuild                 := Seq(
+    WorkflowStep.Sbt(List("compile"), name = Some("Build project")),
+    WorkflowStep.Sbt(List("test"), name = Some("Run default tests")),
+    WorkflowStep.Sbt(
+      commands = List(
+        "slick-additions-codegen/Test/runMain slick.additions.codegen.CodeGen",
+        "test-codegen/compile"
       ),
-      WorkflowStep.Run(
-        commands = List(
-          "git diff --exit-code --quiet HEAD slick-additions-codegen/src/test/resources"
-        ),
-        name = Some("Check that codegen output hasn't changed")
-      ),
-      WorkflowStep.Run(List("mkdir -p slick-additions-entity/.js/target"))
+      name = Some("Check that codegen output compiles")
     ),
+    WorkflowStep.Run(
+      commands = List(
+        "git diff --exit-code --quiet HEAD slick-additions-codegen/src/test/resources"
+      ),
+      name = Some("Check that codegen output hasn't changed")
+    )
+  ),
   githubWorkflowJavaVersions          := Seq(JavaSpec.temurin("11")),
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowPublish               := Seq(

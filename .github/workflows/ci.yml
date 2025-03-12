@@ -47,6 +47,9 @@ jobs:
         run: sbt '++ ${{ matrix.scala }}' githubWorkflowCheck
 
       - name: Build project
+        run: sbt '++ ${{ matrix.scala }}' compile
+
+      - name: Run default tests
         run: sbt '++ ${{ matrix.scala }}' test
 
       - name: Check that codegen output compiles
@@ -55,10 +58,8 @@ jobs:
       - name: Check that codegen output hasn't changed
         run: git diff --exit-code --quiet HEAD slick-additions-codegen/src/test/resources
 
-      - run: mkdir -p slick-additions-entity/.js/target
-
       - name: Compress target directories
-        run: tar cf targets.tar target slick-additions-codegen/src/test/resources/target slick-additions-entity/.jvm/target slick-additions-entity/.js/target slick-additions-codegen/target project/target
+        run: tar cf targets.tar slick-additions-testcontainers/target target slick-additions-codegen/src/test/resources/target slick-additions-entity/.jvm/target slick-additions-entity/.js/target slick-additions-codegen/target project/target
 
       - name: Upload target directories
         uses: actions/upload-artifact@v4

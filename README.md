@@ -190,3 +190,9 @@ val slickConfig = ConfigFactory.load().getConfig("slick.dbs.default")
 MyModelsCodeGenerator.doWriteToFile(baseDir, slickConfig, MyModelsCodeGenRules)
 MyTablesCodeGenerator.doWriteToFile(baseDir, slickConfig, MyTablesCodeGenRules)
 ```
+
+
+## `slick-additions-testcontainers`
+
+Provides a [TestContainers](https://java.testcontainers.org/) instance of PostgreSQL with convenience methods
+for using Slick to access it.
