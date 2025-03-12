@@ -2,9 +2,6 @@
 
 ## Helpers for [Scala Slick](https://scala-slick.org)
 
-Note: Artifacts are deployed to Bintray and synchronized to JCenter,
-so you may need to add `ThisBuild / useJCenter := true` to your build.
-
 
 ### `slick-additions-entity`
 [![javadoc](https://javadoc.io/badge2/io.github.nafg/slick-additions-entity_2.13/javadoc.svg)](https://javadoc.io/doc/io.github.nafg/slick-additions-entity_2.13)
