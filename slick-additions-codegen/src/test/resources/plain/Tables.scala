@@ -1,21 +1,15 @@
 package plain
 import slick.jdbc.H2Profile.api._
 object Tables {
-  class Colors(_tableTag: Tag) extends Table[ColorsRow](
-    _tableTag,
-    Some("PUBLIC"),
-    "colors"
-  ) {
+  class Colors(_tableTag: Tag)
+      extends Table[ColorsRow](_tableTag, Some("PUBLIC"), "colors") {
     val id                                      = column[Long]("id")
     val name                                    = column[String]("name")
     def * : slick.lifted.ProvenShape[ColorsRow] = (id, name).mapTo[ColorsRow]
   }
   lazy val Colors = TableQuery[Colors]
-  class People(_tableTag: Tag) extends Table[PeopleRow](
-    _tableTag,
-    Some("PUBLIC"),
-    "people"
-  ) {
+  class People(_tableTag: Tag)
+      extends Table[PeopleRow](_tableTag, Some("PUBLIC"), "people") {
     val id         = column[Long]("id")
     val first      = column[String]("first")
     val last       = column[String]("last")
