@@ -17,7 +17,13 @@ val slickVersion = "3.5.2"
 lazy val `slick-additions` =
   (project in file("."))
     .dependsOn(`slick-additions-entity`.jvm)
-    .aggregate(`slick-additions-entity`.jvm, `slick-additions-entity`.js, `slick-additions-codegen`)
+    .aggregate(
+      `slick-additions-entity`.jvm,
+      `slick-additions-entity`.js,
+      `slick-additions-codegen`,
+      `slick-additions-testcontainers`,
+      `test-codegen`
+    )
     .settings(
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick"           % slickVersion,
@@ -45,11 +51,21 @@ lazy val `slick-additions-codegen` =
 lazy val `test-codegen` =
   project
     .in(`slick-additions-codegen`.base / "src" / "test" / "resources")
-    .dependsOn(`slick-additions`)
+    .dependsOn(LocalProject("slick-additions"))
     .settings(
       publish / skip                       := true,
       Compile / unmanagedSourceDirectories := Seq(baseDirectory.value),
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick" % slickVersion
+      )
+    )
+
+lazy val `slick-additions-testcontainers` =
+  project
+    .settings(
+      libraryDependencies ++= Seq(
+        "com.typesafe"        % "config"     % "1.4.3",
+        "com.typesafe.slick" %% "slick"      % slickVersion,
+        "org.testcontainers"  % "postgresql" % "1.20.6"
       )
     )
