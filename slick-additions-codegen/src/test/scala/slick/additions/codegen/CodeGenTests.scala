@@ -9,6 +9,6 @@ class CodeGenTests extends AsyncFunSuite {
   for (codeGeneration <- CodeGeneration.all)
     test(codeGeneration.filename) {
       Util.codeString(codeGeneration)
-        .map(assertResult(Source.fromResource(codeGeneration.filename).mkString)(_))
+        .map(assertResult(_)(Source.fromResource(codeGeneration.filename).mkString))
     }
 }
