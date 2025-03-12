@@ -130,11 +130,13 @@ class TablesCodeGenerator extends BaseCodeGenerator {
       val containerName      = Term.Name(rules.container)
       val tableStatsList     = tableConfigs.flatMap(tableStats)
       Pkg(
-        packageRef,
-        slickProfileImport ++
-          extraImports ++
-          List(defObject(containerName)(tableStatsList))
-      )
-        .syntax
+        ref = packageRef,
+        body =
+          Pkg.Body(
+            slickProfileImport ++
+              extraImports ++
+              List(defObject(containerName)(tableStatsList))
+          )
+      ).syntax
     }
 }

@@ -61,10 +61,13 @@ object ScalaMetaDsl {
 
   def template(inits: Init*)(statements: Seq[Stat] = Nil) =
     Template(
-      early = Nil,
+      earlyClause = None,
       inits = inits.toList,
-      self = Self(Name.Anonymous(), None),
-      stats = statements.toList,
+      body =
+        Template.Body(
+          selfOpt = Some(Self(Name.Anonymous(), None)),
+          stats = statements.toList
+        ),
       derives = Nil
     )
 

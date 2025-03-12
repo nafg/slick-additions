@@ -36,7 +36,7 @@ class ModelsCodeGenerator extends BaseCodeGenerator {
 
       Pkg(
         ref = packageRef,
-        stats = importStatements ++ tableRowStats
+        body = Pkg.Body(importStatements ++ tableRowStats)
       ).syntax
     }
 }
