@@ -1,0 +1,6 @@
+{
+  "tasks": {
+    "test": "/usr/local/sdkman/candidates/sbt/current/bin/sbt test",
+    "build": "/usr/local/sdkman/candidates/sbt/current/bin/sbt compile"
+  }
+}
