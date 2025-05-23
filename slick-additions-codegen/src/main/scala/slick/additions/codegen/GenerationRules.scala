@@ -11,6 +11,7 @@ import slick.dbio.DBIO
 import slick.jdbc.JdbcProfile
 import slick.jdbc.meta._
 
+import org.slf4j.LoggerFactory
 
 /** Information about a table obtained from the Slick JDBC metadata APIs
   */
@@ -64,6 +65,8 @@ case class TableConfig(
   * snake_case names in the database, and names model classes by appending `Row` to the camel-cased table name.
   */
 trait GenerationRules {
+  private val logger = LoggerFactory.getLogger(getClass)
+
   def packageName: String
   def container: String
   def extraImports                         = List.empty[String]
@@ -130,7 +133,10 @@ trait GenerationRules {
 
   def columnConfig(column: MColumn, currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): ColumnConfig = {
     val ident    = Term.Name(snakeToCamel(column.name))
-    val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(column, (_: MColumn) => typ"Nothing")
+    val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(column, (_: MColumn) => {
+      logger.warn(s"Column type not matched for column: ${currentTableMetadata.table.name} ${column.name}")
+      typ"Nothing"
+    })
     val default0 = baseColumnDefault(currentTableMetadata, all).lift(column)
 
     val (typ, default) =
