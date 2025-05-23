@@ -71,7 +71,8 @@ case class KeylessEntity[K, +A](override val value: A) extends Entity[K, A]    {
   override def toString = s"KeylessEntity($value)"
 }
 
-sealed trait KeyedEntity[K, +A]                                              extends Entity[K, A] with Lookup[K, A] {
+sealed trait KeyedEntity[K, +A]
+    extends Entity[K, A] with Lookup[K, A] with Product {
   override def keyOption = Some(key)
 
   override def transform[B](f: A => B): KeyedEntity[K, B]
@@ -82,16 +83,16 @@ sealed trait KeyedEntity[K, +A]                                              ext
   def toSaved: SavedEntity[K, A]            = SavedEntity(key, value)
   override def toEntityKey: EntityKey[K, A] = EntityKey(key)
 }
-object KeyedEntity {
+object KeyedEntity                                      {
   def apply[K, A](key: K, value: A): KeyedEntity[K, A]   = SavedEntity[K, A](key, value)
   def unapply[K, A](ke: KeyedEntity[K, A]): Some[(K, A)] = Some((ke.key, ke.value))
 }
-case class SavedEntity[K, +A](override val key: K, override val value: A)    extends KeyedEntity[K, A]              {
+case class SavedEntity[K, +A](override val key: K, override val value: A) extends KeyedEntity[K, A] {
   final override def isSaved                              = true
   override def transform[B](f: A => B): SavedEntity[K, B] = copy(value = f(value))
   override def widen[B >: A]: SavedEntity[K, B]           = transform(identity)
 }
-case class ModifiedEntity[K, +A](override val key: K, override val value: A) extends KeyedEntity[K, A]              {
+case class ModifiedEntity[K, +A](override val key: K, override val value: A) extends KeyedEntity[K, A] {
   final override def isSaved                                 = false
   override def transform[B](f: A => B): ModifiedEntity[K, B] = copy(value = f(value))
   override def widen[B >: A]: ModifiedEntity[K, B]           = transform(identity)
