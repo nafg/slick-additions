@@ -13,6 +13,7 @@ import slick.jdbc.meta._
 
 import org.slf4j.LoggerFactory
 
+
 /** Information about a table obtained from the Slick JDBC metadata APIs
   */
 case class TableMetadata(
@@ -133,10 +134,13 @@ trait GenerationRules {
 
   def columnConfig(column: MColumn, currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): ColumnConfig = {
     val ident    = Term.Name(snakeToCamel(column.name))
-    val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(column, (_: MColumn) => {
-      logger.warn(s"Column type not matched for column: ${currentTableMetadata.table.name} ${column.name}")
-      typ"Nothing"
-    })
+    val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(
+      column,
+      (_: MColumn) => {
+        logger.warn(s"Column type not matched for column: ${currentTableMetadata.table.name} ${column.name}")
+        typ"Nothing"
+      }
+    )
     val default0 = baseColumnDefault(currentTableMetadata, all).lift(column)
 
     val (typ, default) =
