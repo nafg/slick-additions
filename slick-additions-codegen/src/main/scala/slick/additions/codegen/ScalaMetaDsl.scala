@@ -6,8 +6,8 @@ import scala.meta.{Ctor, Defn, Init, Mod, Name, Pat, Self, Stat, Template, Term,
 
 object ScalaMetaDsl {
   implicit class scalametaNonMacroInterpolators(private val sc: StringContext) extends AnyVal {
-    def term(args: String*) = Term.Name(StringContext.standardInterpolator(identity, args, sc.parts))
-    def typ(args: String*)  = Type.Name(StringContext.standardInterpolator(identity, args, sc.parts))
+    def term(args: String*) = Term.Name(new StringContext(sc.parts: _*).standardInterpolator(identity, args))
+    def typ(args: String*)  = Type.Name(new StringContext(sc.parts: _*).standardInterpolator(identity, args))
   }
 
   implicit class scalametaDefnClassExtensionMethods(private val self: Defn.Class) extends AnyVal {

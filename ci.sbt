@@ -18,7 +18,7 @@ inThisBuild(List(
   ),
   dynverGitDescribeOutput ~= (_.map(o => o.copy(dirtySuffix = sbtdynver.GitDirtySuffix("")))),
   dynverSonatypeSnapshots             := true,
-  githubWorkflowScalaVersions         := List("2.13.x", "3.x"),
+  githubWorkflowScalaVersions         := githubWorkflowScalaVersions.value.map(_.replaceFirst("\\d+$", "x")),
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowBuild                 := Seq(
     WorkflowStep.Sbt(List("compile"), name = Some("Build project")),
