@@ -2,7 +2,22 @@ package slick.additions.codegen
 
 import scala.annotation.nowarn
 import scala.meta.Member.ParamClauseGroup
-import scala.meta.{Ctor, Defn, Init, Mod, Name, Pat, Self, Stat, Template, Term, Type}
+import scala.meta.{
+  Ctor,
+  Defn,
+  Import,
+  Importer,
+  Init,
+  Mod,
+  Name,
+  Pat,
+  Self,
+  Stat,
+  Template,
+  Term,
+  Type,
+  XtensionParseInputLike
+}
 
 
 object ScalaMetaDsl {
@@ -106,4 +121,32 @@ object ScalaMetaDsl {
       name = name,
       templ = template(inits: _*)(statements)
     )
+
+  private def recursePathTerm[A <: C, C](xs: List[String], last: A)(g: (Term.Ref, A) => C): C =
+    xs match {
+      case Nil     => last
+      case x :: xs => g(toTermRef0(x, xs), last)
+    }
+
+  private def toTermRef0(last: String, revInit: List[String]): Term.Ref =
+    recursePathTerm[Term.Name, Term.Ref](revInit, term"$last")(_.termSelect(_))
+
+  def toTermRef(s: String): Term.Ref =
+    s.split('.').toList.reverse match {
+      case Nil             => term"$s"
+      case last :: revInit => toTermRef0(last, revInit)
+    }
+
+  def toTypeRef(s: String): Type.Ref =
+    s.split('.').toList.reverse match {
+      case Nil             => typ"$s"
+      case last :: revInit => recursePathTerm[Type.Name, Type.Ref](revInit, typ"$last")(_.typeSelect(_))
+    }
+
+  def makeImports(strings: List[String]): List[Stat] =
+    if (strings.isEmpty)
+      Nil
+    else
+      List(Import(strings.map(_.parse[Importer].get)))
+
 }

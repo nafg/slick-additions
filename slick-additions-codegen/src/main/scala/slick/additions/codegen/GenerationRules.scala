@@ -62,20 +62,16 @@ case class TableConfig(
 /** Generates [[TableConfig]]s (and their [[ColumnConfig]]s) by reading database metadata. Extend this trait directly or
   * indirectly, and override methods freely to customize.
   *
-  * The default implementation does not generate code that requires `slick-additions`, uses camelCase for corresponding
+  * The default implementation generates code that does not use `slick-additions`, uses camelCase for corresponding
   * snake_case names in the database, and names model classes by appending `Row` to the camel-cased table name.
   */
 trait GenerationRules {
   private val logger = LoggerFactory.getLogger(getClass)
 
-  def packageName: String
-  def container: String
   def extraImports = List.empty[String]
 
   // noinspection ScalaWeakerAccess,ScalaUnusedSymbol
   protected def includeTable(table: MTable): Boolean = true
-
-  def filePath(base: Path) = (packageName.split(".") :+ (container + ".scala")).foldLeft(base)(_ resolve _)
 
   // noinspection ScalaWeakerAccess
   protected def namingRules: NamingRules = NamingRules.ModelSuffixedWithRow
