@@ -146,7 +146,9 @@ trait GenerationRules {
     val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(
       column,
       (_: MColumn) => {
-        logger.warn(s"Column type not matched for column: ${currentTableMetadata.table.name} ${column.name}")
+        logger.warn(
+          s"Column type not matched by `baseColumnType` for column: ${currentTableMetadata.table.name} ${column.name}"
+        )
         typ"Nothing"
       }
     )
