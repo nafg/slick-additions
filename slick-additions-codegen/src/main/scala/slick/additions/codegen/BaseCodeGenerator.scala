@@ -4,9 +4,9 @@ import java.nio.file.{Files, Path}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.meta._
+import scala.meta.{Pkg, Stat, Term, XtensionSyntax}
 
-import slick.additions.codegen.ScalaMetaDsl._
+import slick.additions.codegen.ScalaMetaDsl.*
 import slick.dbio.DBIO
 import slick.jdbc.{JdbcBackend, JdbcProfile}
 
@@ -23,38 +23,52 @@ import org.scalafmt.config.ScalafmtConfig
   *   [[GenerationRules]]
   */
 trait BaseCodeGenerator {
-  private def recursePathTerm[A <: C, C](xs: List[String], last: A)(g: (Term.Ref, A) => C): C =
-    xs match {
-      case Nil     => last
-      case x :: xs => g(toTermRef0(x, xs), last)
-    }
+  def packageName: String
 
-  private def toTermRef0(last: String, revInit: List[String]): Term.Ref =
-    recursePathTerm[Term.Name, Term.Ref](revInit, term"$last")(_.termSelect(_))
+  def filename: String
 
-  protected def toTermRef(s: String): Term.Ref =
-    s.split('.').toList.reverse match {
-      case Nil             => term"$s"
-      case last :: revInit => toTermRef0(last, revInit)
-    }
+  // noinspection ScalaWeakerAccess
+  protected def packageRef = toTermRef(packageName)
 
-  protected def toTypeRef(s: String): Type.Ref =
-    s.split('.').toList.reverse match {
-      case Nil             => typ"$s"
-      case last :: revInit => recursePathTerm[Type.Name, Type.Ref](revInit, typ"$last")(_.typeSelect(_))
-    }
+  def filePath(base: Path) = (packageName.split(".") :+ (filename + ".scala")).foldLeft(base)(_ resolve _)
 
-  protected def imports(strings: List[String]): List[Stat] =
-    if (strings.isEmpty)
-      Nil
-    else
-      List(Import(strings.map(_.parse[Importer].get)))
+  def imports: List[String] = Nil
+
+  protected def allImports(extraImports: List[String], slickProfileClass: Class[? <: JdbcProfile]): List[Stat]
+
+  protected def tableStats(tableConfig: TableConfig): List[Stat]
+
+  protected def fileStats(tableConfigs: List[TableConfig]): List[Stat] = tableConfigs.flatMap(tableStats)
+
+  // noinspection ScalaWeakerAccess
+  protected def fileStat(tableConfigs: List[TableConfig], allImports: List[Stat]): Pkg =
+    Pkg(
+      ref = packageRef,
+      body =
+        Pkg.Body(
+          allImports ++
+            fileStats(tableConfigs)
+        )
+    )
+
+  def codeString(
+    tableConfigs: List[TableConfig],
+    extraImports: List[String],
+    slickProfileClass: Class[? <: JdbcProfile]
+  ): String =
+    fileStat(
+      tableConfigs = tableConfigs,
+      allImports = allImports(extraImports, slickProfileClass)
+    )
+      .syntax
 
   def codeString(
     rules: GenerationRules,
     slickProfileClass: Class[_ <: JdbcProfile]
   )(implicit executionContext: ExecutionContext
-  ): DBIO[String]
+  ): DBIO[String] =
+    rules.tableConfigs(slickProfileClass)
+      .map(codeString(_, rules.extraImports, slickProfileClass))
 
   def codeString(rules: GenerationRules, slickProfileClassName: String)(implicit executionContext: ExecutionContext)
     : DBIO[String] = codeString(rules, Class.forName(slickProfileClassName).asSubclass(classOf[JdbcProfile]))
@@ -71,6 +85,7 @@ trait BaseCodeGenerator {
         DBIO.from(Future.fromTry(formatted.toEither.toTry))
       }
 
+  // noinspection ScalaWeakerAccess
   def writeToFileDBIO(
     baseDir: Path,
     slickConfig: Config,
@@ -78,7 +93,7 @@ trait BaseCodeGenerator {
   )(implicit executionContext: ExecutionContext
   ) =
     codeStringFormatted(rules, slickConfig.getString("profile")).map { codeStr =>
-      val path = rules.filePath(baseDir)
+      val path = filePath(baseDir)
       Files.createDirectories(path.getParent)
       Files.write(path, codeStr.getBytes())
       path

@@ -16,11 +16,11 @@ trait MonocleLensesModelsCodeGenerator extends ModelsCodeGenerator {
       .modelClass(tableConfig)
       .withMod(Mod.Annot(init(typ"Lenses")))
 
-  override protected def rowStats(tableConfig: TableConfig) =
+  override protected def tableStats(tableConfig: TableConfig) =
     List(
       modelClass(tableConfig),
       defObject(Term.Name(tableConfig.modelClassName))()
     )
 
-  override protected def imports(strings: List[String]) = super.imports(strings :+ "monocle.macros.Lenses")
+  override def imports = super.imports :+ "monocle.macros.Lenses"
 }

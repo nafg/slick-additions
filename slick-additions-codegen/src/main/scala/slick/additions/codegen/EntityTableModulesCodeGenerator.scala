@@ -13,7 +13,7 @@ import slick.jdbc.JdbcProfile
   *
   * Generated code requires `slick-additions`.
   */
-class EntityTableModulesCodeGenerator extends TablesCodeGenerator {
+trait EntityTableModulesCodeGenerator extends TablesCodeGenerator {
   override protected def profileImport(slickProfileClass: Class[_ <: JdbcProfile]) =
     List(
       Import(
@@ -58,39 +58,40 @@ class EntityTableModulesCodeGenerator extends TablesCodeGenerator {
     term"slick".termSelect("lifted").typeSelect(typ"MappedProjection")
       .typeApply(rowClassType)
 
-  override def tableStats = {
-    case tableConfig @ TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
-      columns.partition(c => tableMetadata.primaryKeys.exists(_.column == c.column.name)) match {
-        case (Seq(pk), otherCols) =>
-          val fields  = otherCols.map(columnField)
-          val mapping = mkMapping(modelClassName, "mapping", otherCols)
-          val keyType = pk.scalaType
+  override def tableStats(tableConfig: TableConfig) =
+    tableConfig match {
+      case tableConfig @ TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
+        columns.partition(c => tableMetadata.primaryKeys.exists(_.column == c.column.name)) match {
+          case (Seq(pk), otherCols) =>
+            val fields  = otherCols.map(columnField)
+            val mapping = mkMapping(modelClassName, "mapping", otherCols)
+            val keyType = pk.scalaType
 
-          List(
-            defObject(
-              Term.Name(tableClassName),
-              init(
-                typ"EntityTableModule".typeApply(keyType, typ"$modelClassName"),
-                Seq(Seq(Lit.String(tableMetadata.table.name.name)))
-              )
-            )(
-              List(
-                defClass(
-                  "Row",
-                  params = List(termParam(term"tag", typ"Tag")),
-                  inits = List(init(typ"BaseEntRow", Seq(Seq(term"tag"))))
-                )(
-                  defDef("keyColumnName", modifiers = List(Mod.Override()))()(
-                    Lit.String(pk.column.name)
-                  ) +:
-                    fields :+
-                    mapping
+            List(
+              defObject(
+                Term.Name(tableClassName),
+                init(
+                  typ"EntityTableModule".typeApply(keyType, typ"$modelClassName"),
+                  Seq(Seq(Lit.String(tableMetadata.table.name.name)))
+                )
+              )(
+                List(
+                  defClass(
+                    "Row",
+                    params = List(termParam(term"tag", typ"Tag")),
+                    inits = List(init(typ"BaseEntRow", Seq(Seq(term"tag"))))
+                  )(
+                    defDef("keyColumnName", modifiers = List(Mod.Override()))()(
+                      Lit.String(pk.column.name)
+                    ) +:
+                      fields :+
+                      mapping
+                  )
                 )
               )
             )
-          )
-        case _                    =>
-          super.tableStats(tableConfig)
-      }
-  }
+          case _                    =>
+            super.tableStats(tableConfig)
+        }
+    }
 }

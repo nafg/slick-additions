@@ -1,10 +1,9 @@
 package slick.additions.codegen
 
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext
-import scala.meta._
+import scala.meta.*
 
-import slick.additions.codegen.ScalaMetaDsl._
+import slick.additions.codegen.ScalaMetaDsl.*
 import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MQName
 
@@ -14,7 +13,7 @@ import slick.jdbc.meta.MQName
   * Tables that have more than 22 fields are mapped by simply nesting tuples so that no single tuple has more than 22
   * elements.
   */
-class TablesCodeGenerator extends BaseCodeGenerator {
+trait TablesCodeGenerator extends BaseCodeGenerator {
   // noinspection ScalaWeakerAccess
   def isDefaultSchema(schema: String) = schema == "public"
 
@@ -83,33 +82,34 @@ class TablesCodeGenerator extends BaseCodeGenerator {
       )
   }
 
-  def tableStats: TableConfig => List[Stat] = {
-    case TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
-      val fields        = columns.map(columnField)
-      val mapping       = mkMapping(modelClassName, "*", columns)
-      tableMetadata.table.name.catalog.foreach { catalog =>
-        println(s"Warning: ignoring catalog ($catalog)")
-      }
-      val params        = tableMetadata.table.name match {
-        case MQName(_, Some(schema), name) if !isDefaultSchema(schema) =>
-          List(term"Some".termApply(Lit.String(schema)), Lit.String(name))
-        case MQName(_, _, name)                                        =>
-          List(Lit.String(name))
-      }
-      val tableClassDef =
-        defClass(
-          tableClassName,
-          params = List(termParam(term"_tableTag", typ"Tag")),
-          inits = List(init(typ"Table".typeApply(typ"$modelClassName"), List(List(term"_tableTag") ++ params)))
-        )(
-          fields :+ mapping
-        )
-      val tableQuery    =
-        defVal(term"$tableClassName", modifiers = List(Mod.Lazy()))(
-          term"TableQuery".termApplyType(typ"$tableClassName")
-        )
-      List(tableClassDef, tableQuery)
-  }
+  protected def tableStats(tableConfig: TableConfig): List[Stat] =
+    tableConfig match {
+      case TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
+        val fields        = columns.map(columnField)
+        val mapping       = mkMapping(modelClassName, "*", columns)
+        tableMetadata.table.name.catalog.foreach { catalog =>
+          println(s"Warning: ignoring catalog ($catalog)")
+        }
+        val params        = tableMetadata.table.name match {
+          case MQName(_, Some(schema), name) if !isDefaultSchema(schema) =>
+            List(term"Some".termApply(Lit.String(schema)), Lit.String(name))
+          case MQName(_, _, name)                                        =>
+            List(Lit.String(name))
+        }
+        val tableClassDef =
+          defClass(
+            tableClassName,
+            params = List(termParam(term"_tableTag", typ"Tag")),
+            inits = List(init(typ"Table".typeApply(typ"$modelClassName"), List(List(term"_tableTag") ++ params)))
+          )(
+            fields :+ mapping
+          )
+        val tableQuery    =
+          defVal(term"$tableClassName", modifiers = List(Mod.Lazy()))(
+            term"TableQuery".termApplyType(typ"$tableClassName")
+          )
+        List(tableClassDef, tableQuery)
+    }
 
   protected def profileImport(slickProfileClass: Class[_ <: JdbcProfile]): List[Stat] = {
     val profileName = toTermRef(slickProfileClass.getName.stripSuffix("$"))
@@ -118,25 +118,7 @@ class TablesCodeGenerator extends BaseCodeGenerator {
     )
   }
 
-  override def codeString(
-    rules: GenerationRules,
-    slickProfileClass: Class[_ <: JdbcProfile]
-  )(implicit executionContext: ExecutionContext
-  ) =
-    rules.tableConfigs(slickProfileClass).map { tableConfigs =>
-      val packageRef         = toTermRef(rules.packageName)
-      val slickProfileImport = profileImport(slickProfileClass)
-      val extraImports       = imports(rules.extraImports)
-      val containerName      = Term.Name(rules.container)
-      val tableStatsList     = tableConfigs.flatMap(tableStats)
-      Pkg(
-        ref = packageRef,
-        body =
-          Pkg.Body(
-            slickProfileImport ++
-              extraImports ++
-              List(defObject(containerName)(tableStatsList))
-          )
-      ).syntax
-    }
+  protected def allImports(extraImports: List[String], slickProfileClass: Class[? <: JdbcProfile]): List[Stat] =
+    profileImport(slickProfileClass) ++
+      makeImports(imports ++ extraImports)
 }
