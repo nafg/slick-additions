@@ -1,6 +1,5 @@
 package slick.additions.codegen
 
-import java.nio.file.Path
 import java.sql.Types
 
 import scala.concurrent.ExecutionContext
