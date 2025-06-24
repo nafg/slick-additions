@@ -58,16 +58,30 @@ trait EntityTableModulesFileCodeGenerator   extends TablesFileCodeGenerator   {
   override def objectCodeGenerator(tableConfig: TableConfig): EntityTableModulesObjectCodeGenerator =
     new TablesObjectCodeGenerator(tableConfig) with EntityTableModulesObjectCodeGenerator
 }
-//noinspection ScalaUnusedSymbol
 trait EntityTableModulesObjectCodeGenerator extends TablesObjectCodeGenerator {
   override def mappingType(rowClassType: Type.Name) =
     term"slick".termSelect("lifted").typeSelect(typ"MappedProjection")
       .typeApply(rowClassType)
 
+  // noinspection ScalaWeakerAccess
+  protected def defKeyColumnName(pk: ColumnConfig): List[Stat] =
+    if (pk.column.name == "id")
+      Nil
+    else
+      List(
+        defDef("keyColumnName", modifiers = List(Mod.Override()))()(
+          Lit.String(pk.column.name)
+        )
+      )
+
+  // noinspection ScalaWeakerAccess
+  protected def partitionPrimaryKey: (List[ColumnConfig], List[ColumnConfig]) =
+    tableConfig.columns.partition(c => tableConfig.tableMetadata.primaryKeys.exists(_.column == c.column.name))
+
   override def statements =
     tableConfig match {
-      case TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
-        columns.partition(c => tableMetadata.primaryKeys.exists(_.column == c.column.name)) match {
+      case TableConfig(tableMetadata, tableClassName, modelClassName, _) =>
+        partitionPrimaryKey match {
           case (Seq(pk), otherCols) =>
             val fields  = otherCols.map(columnField)
             val mapping = mkMapping(modelClassName, "mapping", otherCols)
@@ -87,9 +101,7 @@ trait EntityTableModulesObjectCodeGenerator extends TablesObjectCodeGenerator {
                     params = List(termParam(term"tag", typ"Tag")),
                     inits = List(init(typ"BaseEntRow", Seq(Seq(term"tag"))))
                   )(
-                    defDef("keyColumnName", modifiers = List(Mod.Override()))()(
-                      Lit.String(pk.column.name)
-                    ) +:
+                    defKeyColumnName(pk) ++
                       fields :+
                       mapping
                   )

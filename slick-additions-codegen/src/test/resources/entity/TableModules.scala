@@ -11,20 +11,18 @@ import slick.additions.entity.Lookup
 object TableModules {
   object Colors extends EntityTableModule[Long, ColorsRow]("colors") {
     class Row(tag: Tag) extends BaseEntRow(tag) {
-      override def keyColumnName = "id"
-      val name                   = column[String]("name")
+      val name = column[String]("name")
       def mapping: slick.lifted.MappedProjection[ColorsRow] =
         name.mapTo[ColorsRow]
     }
   }
   object People extends EntityTableModule[Long, PeopleRow]("people") {
     class Row(tag: Tag) extends BaseEntRow(tag) {
-      override def keyColumnName = "id"
-      val first                  = column[String]("first")
-      val last                   = column[String]("last")
-      val city                   = column[String]("city")
-      val dateJoined             = column[java.time.LocalDate]("date_joined")
-      val balance                = column[BigDecimal]("balance")
+      val first      = column[String]("first")
+      val last       = column[String]("last")
+      val city       = column[String]("city")
+      val dateJoined = column[java.time.LocalDate]("date_joined")
+      val balance    = column[BigDecimal]("balance")
       val bestFriend = column[Option[Lookup[Long, PeopleRow]]]("best_friend")
       val col8       = column[Option[Double]]("col8")
       val col9       = column[Option[Boolean]]("col9")
