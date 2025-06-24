@@ -19,7 +19,7 @@ object Util extends CompleteLastly {
 
   def writeToFile(generation: CodeGeneration)(implicit executionContext: ExecutionContext) =
     generation.generator.writeToFileSync(
-      Paths.get(s"slick-additions-codegen/src/test/resources/${generation.pkgName}"),
+      Paths.get(s"slick-additions-codegen/src/test/resources"),
       Util.slickConfig,
       generation.rules
     )

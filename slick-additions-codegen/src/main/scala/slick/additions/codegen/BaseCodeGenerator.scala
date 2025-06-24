@@ -30,7 +30,7 @@ trait BaseCodeGenerator {
   // noinspection ScalaWeakerAccess
   protected def packageRef = toTermRef(packageName)
 
-  def filePath(base: Path) = (packageName.split(".") :+ (filename + ".scala")).foldLeft(base)(_ resolve _)
+  def filePath(base: Path) = (packageName.split("\\.") :+ (filename + ".scala")).foldLeft(base)(_ resolve _)
 
   def imports: List[String] = Nil
 
