@@ -59,7 +59,7 @@ case class TableConfig(
   modelClassName: String,
   columns: List[ColumnConfig])
 
-/** Generates [[TableConfig]]s (and their [[ColumnConfig]]s by reading database metadata. Extend this trait directly or
+/** Generates [[TableConfig]]s (and their [[ColumnConfig]]s) by reading database metadata. Extend this trait directly or
   * indirectly, and override methods freely to customize.
   *
   * The default implementation does not generate code that requires `slick-additions`, uses camelCase for corresponding
@@ -70,14 +70,18 @@ trait GenerationRules {
 
   def packageName: String
   def container: String
-  def extraImports                         = List.empty[String]
-  def includeTable(table: MTable): Boolean = true
+  def extraImports = List.empty[String]
+
+  // noinspection ScalaWeakerAccess,ScalaUnusedSymbol
+  protected def includeTable(table: MTable): Boolean = true
 
   def filePath(base: Path) = (packageName.split(".") :+ (container + ".scala")).foldLeft(base)(_ resolve _)
 
-  def columnNameToIdentifier(name: String)      = snakeToCamel(name)
-  def tableNameToIdentifier(name: MQName)       = snakeToCamel(name.name).capitalize
-  def modelClassName(tableName: MQName): String = tableNameToIdentifier(tableName) + "Row"
+  // noinspection ScalaWeakerAccess
+  protected def columnNameToIdentifier(name: String) = snakeToCamel(name)
+  // noinspection ScalaWeakerAccess
+  protected def tableNameToIdentifier(name: MQName)  = snakeToCamel(name.name).capitalize
+  def modelClassName(tableName: MQName): String      = tableNameToIdentifier(tableName) + "Row"
 
   /** Determine the base Scala type for a column. If the column is nullable, the type returned from this method will be
     * wrapped in `Option[...]`.
@@ -103,7 +107,7 @@ trait GenerationRules {
       term"java".termSelect(term"sql").typeSelect(typ"Blob")
   }
 
-  /** Determine the base Scala default value for a column. If the columns is nullable, the expression returned from this
+  /** Determine the base Scala default value for a column. If the column is nullable, the expression returned from this
     * method will be wrapped in `Some(...)`.
     *
     * Extend by overriding with `orElse`.
@@ -114,7 +118,8 @@ trait GenerationRules {
     * @see
     *   [[columnConfig]]
     */
-  def baseColumnDefault(currentTableMetadata: TableMetadata, all: Seq[TableMetadata])
+  // noinspection ScalaWeakerAccess,ScalaUnusedSymbol
+  protected def baseColumnDefault(currentTableMetadata: TableMetadata, all: Seq[TableMetadata])
     : PartialFunction[MColumn, Term] = {
     case ColType(Types.BIT, "boolean" | "bool", Some(AsBoolean(b)))              => Lit.Boolean(b)
     case ColType(Types.INTEGER, _, Some(AsInt(i)))                               => Lit.Int(i)
@@ -132,6 +137,7 @@ trait GenerationRules {
       Lit.String(s.stripPrefix("'").stripSuffix("'"))
   }
 
+  // noinspection ScalaWeakerAccess
   def columnConfig(column: MColumn, currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): ColumnConfig = {
     val ident    = Term.Name(columnNameToIdentifier(column.name))
     val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(
