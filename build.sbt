@@ -6,7 +6,14 @@ name := "slick-additions"
 ThisBuild / crossScalaVersions := Seq("2.12.20", "2.13.16", "3.3.6")
 ThisBuild / scalaVersion       := (ThisBuild / crossScalaVersions).value.last
 ThisBuild / organization       := "io.github.nafg"
-ThisBuild / scalacOptions ++= Seq("-deprecation", "-unchecked")
+ThisBuild / scalacOptions ++=
+  Seq("-deprecation", "-unchecked", "-feature") ++
+    (if (scalaVersion.value.startsWith("2.12."))
+       Seq("-language:higherKinds", "-Xsource:3")
+     else if (scalaVersion.value.startsWith("2.13."))
+       Seq("-Xsource:3-cross")
+     else
+       Seq())
 
 lazy val `slick-additions-entity` =
   crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Pure)
