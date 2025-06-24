@@ -135,10 +135,8 @@ class GenerationRules {
       Lit.String(s.stripPrefix("'").stripSuffix("'"))
   }
 
-  // noinspection ScalaWeakerAccess
-  def columnConfig(column: MColumn, currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): ColumnConfig = {
-    val ident    = Term.Name(columnNameToIdentifier(column.name))
-    val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(
+  protected def baseColumnType(currentTableMetadata: TableMetadata, all: Seq[TableMetadata], column: MColumn): Type =
+    baseColumnType(currentTableMetadata, all).applyOrElse(
       column,
       (_: MColumn) => {
         logger.warn(
@@ -147,6 +145,11 @@ class GenerationRules {
         typ"Nothing"
       }
     )
+
+  // noinspection ScalaWeakerAccess
+  def columnConfig(column: MColumn, currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): ColumnConfig = {
+    val ident    = Term.Name(columnNameToIdentifier(column.name))
+    val typ0     = baseColumnType(currentTableMetadata, all, column)
     val default0 = baseColumnDefault(currentTableMetadata, all).lift(column)
 
     val (typ, default) =

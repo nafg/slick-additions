@@ -20,7 +20,7 @@ trait PostgresArrayGenerationRules extends PostgresGenerationRules {
     super.baseColumnType(currentTableMetadata, all)
       .orElse {
         case col @ ColType(Types.ARRAY, name, _) if name.startsWith("_") =>
-          val elementType = baseColumnType(currentTableMetadata, all)(col.copy(typeName = name.stripPrefix("_")))
+          val elementType = baseColumnType(currentTableMetadata, all, col.copy(typeName = name.stripPrefix("_")))
           typ"List".typeApply(elementType)
       }
 }
