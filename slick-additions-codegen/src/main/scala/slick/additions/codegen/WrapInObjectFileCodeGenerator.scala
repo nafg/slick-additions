@@ -6,14 +6,14 @@ import slick.additions.codegen.ScalaMetaDsl.defObject
 
 
 //noinspection ScalaUnusedSymbol
-trait WrapInObjectCodeGenerator extends BaseCodeGenerator {
+trait WrapInObjectFileCodeGenerator extends FileCodeGenerator {
   // noinspection ScalaWeakerAccess
   protected def container = filename
 
-  override protected def fileStats(tableConfigs: List[TableConfig]) =
+  override protected def fileStatements(tableConfigs: List[TableConfig]) =
     List(
       defObject(Term.Name(container))(
-        super.fileStats(tableConfigs)
+        super.fileStatements(tableConfigs)
       )
     )
 }

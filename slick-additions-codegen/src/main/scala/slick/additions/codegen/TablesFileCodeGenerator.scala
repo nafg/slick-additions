@@ -13,11 +13,29 @@ import slick.jdbc.meta.MQName
   * Tables that have more than 22 fields are mapped by simply nesting tuples so that no single tuple has more than 22
   * elements.
   */
-trait TablesCodeGenerator extends BaseCodeGenerator {
+trait TablesFileCodeGenerator extends FileCodeGenerator {
+  protected def profileImport(slickProfileClass: Class[_ <: JdbcProfile]): List[Stat] = {
+    val profileName = toTermRef(slickProfileClass.getName.stripSuffix("$"))
+    List(
+      Import(List(Importer(profileName.termSelect("api"), List(Importee.Wildcard()))))
+    )
+  }
+
+  override protected def importStatements(extraImports: List[String], slickProfileClass: Class[? <: JdbcProfile])
+    : List[Stat] =
+    profileImport(slickProfileClass) ++
+      super.importStatements(extraImports, slickProfileClass)
+
+  def objectCodeGenerator(tableConfig: TableConfig): TablesObjectCodeGenerator =
+    new TablesObjectCodeGenerator(tableConfig)
+}
+
+class TablesObjectCodeGenerator(protected val tableConfig: TableConfig) extends ObjectCodeGenerator {
   // noinspection ScalaWeakerAccess
   def isDefaultSchema(schema: String) = schema == "public"
 
-  def mappingType(rowClassType: Type.Name) =
+  // noinspection ScalaWeakerAccess
+  protected def mappingType(rowClassType: Type.Name) =
     term"slick".termSelect("lifted").typeSelect(typ"ProvenShape")
       .typeApply(rowClassType)
 
@@ -82,7 +100,7 @@ trait TablesCodeGenerator extends BaseCodeGenerator {
       )
   }
 
-  protected def tableStats(tableConfig: TableConfig): List[Stat] =
+  def statements: List[Stat] =
     tableConfig match {
       case TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
         val fields        = columns.map(columnField)
@@ -111,14 +129,4 @@ trait TablesCodeGenerator extends BaseCodeGenerator {
         List(tableClassDef, tableQuery)
     }
 
-  protected def profileImport(slickProfileClass: Class[_ <: JdbcProfile]): List[Stat] = {
-    val profileName = toTermRef(slickProfileClass.getName.stripSuffix("$"))
-    List(
-      Import(List(Importer(profileName.termSelect("api"), List(Importee.Wildcard()))))
-    )
-  }
-
-  protected def allImports(extraImports: List[String], slickProfileClass: Class[? <: JdbcProfile]): List[Stat] =
-    profileImport(slickProfileClass) ++
-      makeImports(imports ++ extraImports)
 }

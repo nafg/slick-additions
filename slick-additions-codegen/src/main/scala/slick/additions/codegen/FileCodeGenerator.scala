@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.meta.{Pkg, Stat, Term, XtensionSyntax}
+import scala.meta.{Pkg, Stat, XtensionSyntax}
 
 import slick.additions.codegen.ScalaMetaDsl.*
 import slick.dbio.DBIO
@@ -22,7 +22,7 @@ import org.scalafmt.config.ScalafmtConfig
   * @see
   *   [[GenerationRules]]
   */
-trait BaseCodeGenerator {
+trait FileCodeGenerator {
   def packageName: String
 
   def filename: String
@@ -32,22 +32,26 @@ trait BaseCodeGenerator {
 
   def filePath(base: Path) = (packageName.split("\\.") :+ (filename + ".scala")).foldLeft(base)(_ resolve _)
 
-  def imports: List[String] = Nil
+  protected def imports: List[String] = Nil
 
-  protected def allImports(extraImports: List[String], slickProfileClass: Class[? <: JdbcProfile]): List[Stat]
+  protected def importStatements(extraImports: List[String], slickProfileClass: Class[? <: JdbcProfile]): List[Stat] =
+    makeImports(imports ++ extraImports)
 
-  protected def tableStats(tableConfig: TableConfig): List[Stat]
-
-  protected def fileStats(tableConfigs: List[TableConfig]): List[Stat] = tableConfigs.flatMap(tableStats)
+  protected def objectCodeGenerator(tableConfig: TableConfig): ObjectCodeGenerator
 
   // noinspection ScalaWeakerAccess
-  protected def fileStat(tableConfigs: List[TableConfig], allImports: List[Stat]): Pkg =
+  protected def objectStatements(tableConfig: TableConfig): List[Stat] = objectCodeGenerator(tableConfig).statements
+
+  protected def fileStatements(tableConfigs: List[TableConfig]): List[Stat] = tableConfigs.flatMap(objectStatements)
+
+  // noinspection ScalaWeakerAccess
+  protected def fileStatement(tableConfigs: List[TableConfig], allImports: List[Stat]): Pkg =
     Pkg(
       ref = packageRef,
       body =
         Pkg.Body(
           allImports ++
-            fileStats(tableConfigs)
+            fileStatements(tableConfigs)
         )
     )
 
@@ -56,9 +60,9 @@ trait BaseCodeGenerator {
     extraImports: List[String],
     slickProfileClass: Class[? <: JdbcProfile]
   ): String =
-    fileStat(
+    fileStatement(
       tableConfigs = tableConfigs,
-      allImports = allImports(extraImports, slickProfileClass)
+      allImports = importStatements(extraImports, slickProfileClass)
     )
       .syntax
 
