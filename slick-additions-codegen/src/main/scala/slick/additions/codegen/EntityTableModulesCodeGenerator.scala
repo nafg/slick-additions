@@ -1,8 +1,8 @@
 package slick.additions.codegen
 
-import scala.meta._
+import scala.meta.*
 
-import slick.additions.codegen.ScalaMetaDsl._
+import slick.additions.codegen.ScalaMetaDsl.*
 import slick.jdbc.JdbcProfile
 
 
@@ -78,38 +78,38 @@ trait EntityTableModulesObjectCodeGenerator extends TablesObjectCodeGenerator {
   protected def partitionPrimaryKey: (List[ColumnConfig], List[ColumnConfig]) =
     tableConfig.columns.partition(c => tableConfig.tableMetadata.primaryKeys.exists(_.column == c.column.name))
 
-  override def statements =
-    tableConfig match {
-      case TableConfig(tableMetadata, tableClassName, modelClassName, _) =>
-        partitionPrimaryKey match {
-          case (Seq(pk), otherCols) =>
-            val fields  = otherCols.map(columnField)
-            val mapping = mkMapping(modelClassName, "mapping", otherCols)
-            val keyType = pk.scalaType
+  // noinspection ScalaWeakerAccess
+  protected def tableModuleBase(pk: ColumnConfig) =
+    typ"EntityTableModule".typeApply(pk.scalaType, typ"${tableConfig.modelClassName}")
 
+  // noinspection ScalaWeakerAccess
+  protected def tableRowBase = typ"BaseEntRow"
+
+  // noinspection ScalaWeakerAccess
+  protected def tableMappingName = "mapping"
+
+  override def statements =
+    partitionPrimaryKey match {
+      case (Seq(pk), otherCols) =>
+        List(
+          defObject(
+            Term.Name(tableConfig.tableClassName),
+            init(tableModuleBase(pk), Seq(Seq(Lit.String(tableConfig.tableMetadata.table.name.name))))
+          )(
             List(
-              defObject(
-                Term.Name(tableClassName),
-                init(
-                  typ"EntityTableModule".typeApply(keyType, typ"$modelClassName"),
-                  Seq(Seq(Lit.String(tableMetadata.table.name.name)))
-                )
+              defClass(
+                "Row",
+                params = List(termParam(term"tag", typ"Tag")),
+                inits = List(init(tableRowBase, Seq(Seq(term"tag"))))
               )(
-                List(
-                  defClass(
-                    "Row",
-                    params = List(termParam(term"tag", typ"Tag")),
-                    inits = List(init(typ"BaseEntRow", Seq(Seq(term"tag"))))
-                  )(
-                    defKeyColumnName(pk) ++
-                      fields :+
-                      mapping
-                  )
-                )
+                defKeyColumnName(pk) ++
+                  otherCols.map(columnField) :+
+                  mkMapping(tableConfig.modelClassName, tableMappingName, otherCols)
               )
             )
-          case _                    =>
-            super.statements
-        }
+          )
+        )
+      case _                    =>
+        super.statements
     }
 }
