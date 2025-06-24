@@ -4,12 +4,12 @@ import java.nio.file.Path
 import java.sql.Types
 
 import scala.concurrent.ExecutionContext
-import scala.meta._
+import scala.meta.*
 
-import slick.additions.codegen.ScalaMetaDsl._
+import slick.additions.codegen.ScalaMetaDsl.*
 import slick.dbio.DBIO
 import slick.jdbc.JdbcProfile
-import slick.jdbc.meta._
+import slick.jdbc.meta.*
 
 import org.slf4j.LoggerFactory
 
@@ -78,10 +78,13 @@ trait GenerationRules {
   def filePath(base: Path) = (packageName.split(".") :+ (container + ".scala")).foldLeft(base)(_ resolve _)
 
   // noinspection ScalaWeakerAccess
-  protected def columnNameToIdentifier(name: String) = snakeToCamel(name)
+  protected def namingRules: NamingRules = NamingRules.ModelSuffixedWithRow
+
   // noinspection ScalaWeakerAccess
-  protected def tableNameToIdentifier(name: MQName)  = snakeToCamel(name.name).capitalize
-  def modelClassName(tableName: MQName): String      = tableNameToIdentifier(tableName) + "Row"
+  final protected def columnNameToIdentifier(name: String)      = namingRules.columnNameToIdentifier(name)
+  // noinspection ScalaWeakerAccess
+  final protected def tableNameToIdentifier(name: MQName)       = namingRules.tableNameToIdentifier(name)
+  final protected def modelClassName(tableName: MQName): String = namingRules.modelClassName(tableName)
 
   /** Determine the base Scala type for a column. If the column is nullable, the type returned from this method will be
     * wrapped in `Option[...]`.
