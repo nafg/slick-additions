@@ -3,28 +3,33 @@ package slick.additions.codegen
 import java.nio.file.Path
 
 
-case class CodeGeneration(generator: BaseCodeGenerator, rules: GenerationRules) {
+case class CodeGeneration(generator: FileCodeGenerator, rules: GenerationRules) {
   def pkgName          = generator.packageName
   val filename: String = generator.filePath(Path.of("")).toFile.getPath
 }
 object CodeGeneration                                                           {
-  abstract class TestGenerator(override val packageName: String, override val filename: String)
-      extends BaseCodeGenerator
+  abstract class TestFileCodeGenerator(override val packageName: String, override val filename: String)
+      extends FileCodeGenerator
   val all = Seq(
     CodeGeneration(
-      new TestGenerator("plain", "Tables") with TablesCodeGenerator with WrapInObjectCodeGenerator,
+      new TestFileCodeGenerator("plain", "Tables") with TablesFileCodeGenerator with WrapInObjectFileCodeGenerator,
       new GenerationRules {}
     ),
     CodeGeneration(
-      new TestGenerator("plain", "Models") with ModelsCodeGenerator,
-      new GenerationRules {}
+      new TestFileCodeGenerator("plain", "Models") with ModelsFileCodeGenerator,
+      new GenerationRules
     ),
     CodeGeneration(
-      new TestGenerator("entity", "TableModules") with EntityTableModulesCodeGenerator with WrapInObjectCodeGenerator,
+      new TestFileCodeGenerator("entity", "TableModules")
+        with EntityTableModulesFileCodeGenerator
+        with WrapInObjectFileCodeGenerator,
       new GenerationRules with EntityGenerationRules
     ),
     CodeGeneration(
-      new TestGenerator("entity", "Models") with KeylessModelsCodeGenerator,
+      new TestFileCodeGenerator("entity", "Models") {
+        override protected def objectCodeGenerator(tableConfig: TableConfig): ObjectCodeGenerator =
+          new KeylessModelsObjectCodeGenerator(tableConfig)
+      },
       new GenerationRules with EntityGenerationRules
     )
   )

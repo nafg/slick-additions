@@ -9,11 +9,12 @@ import slick.jdbc.JdbcProfile
 /** Uses `slick-additions` `EntityTableModule` to represent tables. Generates a custom profile object that mixes in
   * `AdditionsProfile` with an `api` member that mixes in `AdditionsApi`.
   *
-  * Models should be generated with [[KeylessModelsCodeGenerator]].
+  * Models should be generated with [[KeylessModelsObjectCodeGenerator]].
   *
   * Generated code requires `slick-additions`.
   */
-trait EntityTableModulesCodeGenerator extends TablesCodeGenerator {
+//noinspection ScalaUnusedSymbol
+trait EntityTableModulesFileCodeGenerator   extends TablesFileCodeGenerator   {
   override protected def profileImport(slickProfileClass: Class[_ <: JdbcProfile]) =
     List(
       Import(
@@ -54,13 +55,18 @@ trait EntityTableModulesCodeGenerator extends TablesCodeGenerator {
       Import(List(Importer(term"SlickProfile".termSelect(term"api"), List(Importee.Wildcard()))))
     )
 
+  override def objectCodeGenerator(tableConfig: TableConfig): EntityTableModulesObjectCodeGenerator =
+    new TablesObjectCodeGenerator(tableConfig) with EntityTableModulesObjectCodeGenerator
+}
+//noinspection ScalaUnusedSymbol
+trait EntityTableModulesObjectCodeGenerator extends TablesObjectCodeGenerator {
   override def mappingType(rowClassType: Type.Name) =
     term"slick".termSelect("lifted").typeSelect(typ"MappedProjection")
       .typeApply(rowClassType)
 
-  override def tableStats(tableConfig: TableConfig) =
+  override def statements =
     tableConfig match {
-      case tableConfig @ TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
+      case TableConfig(tableMetadata, tableClassName, modelClassName, columns) =>
         columns.partition(c => tableMetadata.primaryKeys.exists(_.column == c.column.name)) match {
           case (Seq(pk), otherCols) =>
             val fields  = otherCols.map(columnField)
@@ -91,7 +97,7 @@ trait EntityTableModulesCodeGenerator extends TablesCodeGenerator {
               )
             )
           case _                    =>
-            super.tableStats(tableConfig)
+            super.statements
         }
     }
 }
