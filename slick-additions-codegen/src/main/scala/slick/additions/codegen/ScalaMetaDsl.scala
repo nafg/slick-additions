@@ -1,10 +1,13 @@
 package slick.additions.codegen
 
+import scala.annotation.nowarn
 import scala.meta.Member.ParamClauseGroup
 import scala.meta.{Ctor, Defn, Init, Mod, Name, Pat, Self, Stat, Template, Term, Type}
 
 
 object ScalaMetaDsl {
+  // noinspection ScalaDeprecation
+  @nowarn("cat=deprecation") // TODO needed for scala 2.12 support
   implicit class scalametaNonMacroInterpolators(private val sc: StringContext) extends AnyVal {
     def term(args: String*) = Term.Name(new StringContext(sc.parts: _*).standardInterpolator(identity, args))
     def typ(args: String*)  = Type.Name(new StringContext(sc.parts: _*).standardInterpolator(identity, args))
