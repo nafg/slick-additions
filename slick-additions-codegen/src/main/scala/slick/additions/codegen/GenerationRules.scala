@@ -133,7 +133,7 @@ trait GenerationRules {
   }
 
   def columnConfig(column: MColumn, currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): ColumnConfig = {
-    val ident    = Term.Name(snakeToCamel(column.name))
+    val ident    = Term.Name(columnNameToIdentifier(column.name))
     val typ0     = baseColumnType(currentTableMetadata, all).applyOrElse(
       column,
       (_: MColumn) => {
@@ -150,7 +150,13 @@ trait GenerationRules {
         typ"Option".typeApply(typ0) ->
           Some(default0.map(t => term"Some".termApply(t)).getOrElse(term"None"))
 
-    ColumnConfig(column, ident, ident, typ, default)
+    ColumnConfig(
+      column = column,
+      tableFieldTerm = ident,
+      modelFieldTerm = ident,
+      scalaType = typ,
+      scalaDefault = default
+    )
   }
 
   def columnConfigs(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]) =
