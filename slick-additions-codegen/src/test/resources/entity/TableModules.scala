@@ -1,19 +1,17 @@
 package entity
 import slick.additions.AdditionsProfile
-import slick.lifted.MappedProjection
 trait SlickProfile extends slick.jdbc.H2Profile with AdditionsProfile {
   object myApi extends JdbcAPI with AdditionsApi
   override val api: myApi.type = myApi
 }
 object SlickProfile extends SlickProfile
 import SlickProfile.api._
-import slick.additions.entity.Lookup
+import slick.lifted.MappedProjection, slick.additions.entity.Lookup
 object TableModules {
   object Colors extends EntityTableModule[Long, ColorsRow]("colors") {
     class Row(tag: Tag) extends BaseEntRow(tag) {
-      val name = column[String]("name")
-      def mapping: slick.lifted.MappedProjection[ColorsRow] =
-        name.mapTo[ColorsRow]
+      val name                                 = column[String]("name")
+      def mapping: MappedProjection[ColorsRow] = name.mapTo[ColorsRow]
     }
   }
   object People extends EntityTableModule[Long, PeopleRow]("people") {
@@ -41,7 +39,7 @@ object TableModules {
       val col22      = column[Option[Int]]("col22")
       val col23      = column[Option[Int]]("col23")
       val col24      = column[Option[Int]]("col24")
-      def mapping: slick.lifted.MappedProjection[PeopleRow] = (
+      def mapping: MappedProjection[PeopleRow] = (
         (
           first,
           last,
