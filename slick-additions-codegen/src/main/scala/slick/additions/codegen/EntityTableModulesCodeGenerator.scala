@@ -15,6 +15,8 @@ import slick.jdbc.JdbcProfile
   */
 //noinspection ScalaUnusedSymbol
 trait EntityTableModulesFileCodeGenerator   extends TablesFileCodeGenerator   {
+  override protected def imports = super.imports ++ List("slick.lifted.MappedProjection")
+
   override protected def profileImport(slickProfileClass: Class[_ <: JdbcProfile]) =
     List(
       Import(
@@ -22,14 +24,6 @@ trait EntityTableModulesFileCodeGenerator   extends TablesFileCodeGenerator   {
           Importer(
             term"slick".termSelect(term"additions"),
             List(Importee.Name(Name("AdditionsProfile")))
-          )
-        )
-      ),
-      Import(
-        List(
-          Importer(
-            term"slick".termSelect(term"lifted"),
-            List(Importee.Name(Name("MappedProjection")))
           )
         )
       ),
@@ -59,9 +53,7 @@ trait EntityTableModulesFileCodeGenerator   extends TablesFileCodeGenerator   {
     new TablesObjectCodeGenerator(tableConfig) with EntityTableModulesObjectCodeGenerator
 }
 trait EntityTableModulesObjectCodeGenerator extends TablesObjectCodeGenerator {
-  override def mappingType(rowClassType: Type.Name) =
-    term"slick".termSelect("lifted").typeSelect(typ"MappedProjection")
-      .typeApply(rowClassType)
+  override def mappingType(rowClassType: Type.Name) = typ"MappedProjection".typeApply(rowClassType)
 
   // noinspection ScalaWeakerAccess
   protected def defKeyColumnName(pk: ColumnConfig): List[Stat] =
