@@ -1,71 +1,37 @@
-import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
-
-
 name := "slick-additions"
 
-ThisBuild / crossScalaVersions := Seq("2.12.20", "2.13.16", "3.3.6")
-ThisBuild / scalaVersion       := (ThisBuild / crossScalaVersions).value.last
-ThisBuild / organization       := "io.github.nafg"
-ThisBuild / scalacOptions ++= Seq("-deprecation", "-unchecked")
+val settings = Seq(
+  organization := "io.github.nafg",
+  crossScalaVersions := Seq("2.10.6", "2.11.8"),
+  scalaVersion := "2.11.8",
+  scalacOptions ++= Seq("-deprecation", "-unchecked")
+)
 
 lazy val `slick-additions-entity` =
-  crossProject(JVMPlatform, JSPlatform).crossType(CrossType.Pure)
-    .settings()
-
-val slickVersion = "3.6.1"
+  crossProject.crossType(CrossType.Pure)
+    .settings(settings: _*)
+lazy val `slick-additions-entity-jvm` = `slick-additions-entity`.jvm
+lazy val `slick-additions-entity-js` = `slick-additions-entity`.js
 
 lazy val `slick-additions` =
   (project in file("."))
-    .dependsOn(`slick-additions-entity`.jvm)
-    .aggregate(
-      `slick-additions-entity`.jvm,
-      `slick-additions-entity`.js,
-      `slick-additions-codegen`,
-      `slick-additions-testcontainers`,
-      `test-codegen`
-    )
+    .dependsOn(`slick-additions-entity-jvm`)
+    .aggregate(`slick-additions-entity-jvm`, `slick-additions-entity-js`)
+    .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
-        "com.typesafe.slick" %% "slick"           % slickVersion,
-        "com.lihaoyi"        %% "sourcecode"      % "0.4.2",
-        "org.scalatest"      %% "scalatest"       % "3.2.19"  % "test",
-        "com.h2database"      % "h2"              % "2.3.232" % "test",
-        "ch.qos.logback"      % "logback-classic" % "1.5.18"  % "test"
-      )
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
+        "com.typesafe.slick" %% "slick" % "3.1.1",
+        "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+        "com.h2database" % "h2" % "1.4.194" % "test",
+        "ch.qos.logback" % "logback-classic" % "1.2.2" % "test"
+      ) ++
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, 10)) =>
+            Seq("org.scalamacros" %% "quasiquotes" % "2.1.0-M5" cross CrossVersion.binary)
+          case _ =>
+            Nil
+        }
     )
 
-lazy val `slick-additions-codegen` =
-  project
-    .settings(
-      libraryDependencies ++= Seq(
-        "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
-        ("org.scalameta"     %% "scalameta"      % "4.13.7")
-          .cross(CrossVersion.for3Use2_13),
-        ("org.scalameta"     %% "scalafmt-core"  % "3.9.7")
-          .cross(CrossVersion.for3Use2_13),
-        "com.h2database"      % "h2"             % "2.3.232" % "test",
-        "org.scalatest"      %% "scalatest"      % "3.2.19"  % "test"
-      )
-    )
-
-lazy val `test-codegen` =
-  project
-    .in(`slick-additions-codegen`.base / "src" / "test" / "resources")
-    .dependsOn(LocalProject("slick-additions"))
-    .settings(
-      publish / skip                       := true,
-      Compile / unmanagedSourceDirectories := Seq(baseDirectory.value),
-      libraryDependencies ++= Seq(
-        "com.typesafe.slick" %% "slick" % slickVersion
-      )
-    )
-
-lazy val `slick-additions-testcontainers` =
-  project
-    .settings(
-      libraryDependencies ++= Seq(
-        "com.typesafe"        % "config"     % "1.4.3",
-        "com.typesafe.slick" %% "slick"      % slickVersion,
-        "org.testcontainers"  % "postgresql" % "1.21.2"
-      )
-    )
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0-M5" cross CrossVersion.full)
