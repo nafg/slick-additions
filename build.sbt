@@ -46,7 +46,7 @@ lazy val `slick-additions-codegen` =
     .settings(
       libraryDependencies ++= Seq(
         "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
-        ("org.scalameta"     %% "scalameta"      % "4.13.7")
+        ("org.scalameta"     %% "scalameta"      % "4.13.8")
           .cross(CrossVersion.for3Use2_13),
         ("org.scalameta"     %% "scalafmt-core"  % "3.9.7")
           .cross(CrossVersion.for3Use2_13),
