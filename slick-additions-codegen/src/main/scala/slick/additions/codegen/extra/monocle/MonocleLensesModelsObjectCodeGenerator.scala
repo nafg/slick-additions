@@ -22,6 +22,6 @@ trait MonocleLensesModelsObjectCodeGenerator extends ModelsObjectCodeGenerator {
       defObject(Term.Name(tableConfig.modelClassName))()
     )
 }
-trait MonocleLensesModelsFileCodeGenerator  extends ModelsFileCodeGenerator  {
+trait MonocleLensesModelsFileCodeGenerator   extends ModelsFileCodeGenerator   {
   override def imports = super.imports :+ "monocle.macros.Lenses"
 }
