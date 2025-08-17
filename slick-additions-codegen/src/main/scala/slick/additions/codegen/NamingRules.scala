@@ -6,7 +6,8 @@ import slick.jdbc.meta.MQName
 trait NamingRules {
   def columnNameToIdentifier(name: String): String = snakeToCamel(name)
   def tableNameToIdentifier(name: MQName): String  = snakeToCamel(name.name).capitalize
-  def modelClassName(tableName: MQName): String
+  def modelClassName(tableName: MQName): String    = tableNameToIdentifier(tableName)
+  def tableClassName(tableName: MQName): String    = tableNameToIdentifier(tableName)
 }
 
 object NamingRules {
@@ -46,8 +47,8 @@ object NamingRules {
     */
   // noinspection ScalaUnusedSymbol
   trait TablePluralModelSingular extends NamingRules {
-    override def tableNameToIdentifier(name: MQName) = {
-      val base = super.tableNameToIdentifier(name)
+    override def tableClassName(name: MQName) = {
+      val base = tableNameToIdentifier(name)
       if (base.endsWith("s"))
         base
       else if (base.endsWith("x"))
@@ -57,8 +58,6 @@ object NamingRules {
       else
         base + "s"
     }
-
-    override def modelClassName(tableName: MQName) = s"${snakeToCamel(tableName.name).capitalize}"
   }
 
   /** $TablePluralModelSingular */
