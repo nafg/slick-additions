@@ -29,11 +29,11 @@ sealed trait Lookup[K, +A] extends EntityRef[K, A] {
 }
 
 case class EntityKey[K, +A](override val key: K) extends Lookup[K, A] {
-  override def transform[B](f: A => B): EntityKey[K, B] = copy()
-  override def updated[B](value: B)                     = ModifiedEntity(key, value)
-  override def widen[B >: A]: EntityKey[K, B]           = transform(identity)
-  override def toEntityKey                              = this
-  def asKeyOf[B]                                        = copy[K, B]()
+  override def transform[B](f: A => B): EntityKey[K, B]   = copy()
+  override def updated[B](value: B): ModifiedEntity[K, B] = ModifiedEntity(key, value)
+  override def widen[B >: A]: EntityKey[K, B]             = transform(identity)
+  override def toEntityKey                                = this
+  def asKeyOf[B]                                          = copy[K, B]()
 }
 
 sealed trait Entity[K, +A]                             extends EntityRef[K, A] {
