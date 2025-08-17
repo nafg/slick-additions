@@ -77,9 +77,8 @@ class GenerationRules {
 
   // noinspection ScalaWeakerAccess
   final protected def columnNameToIdentifier(name: String)      = namingRules.columnNameToIdentifier(name)
-  // noinspection ScalaWeakerAccess
-  final protected def tableNameToIdentifier(name: MQName)       = namingRules.tableNameToIdentifier(name)
   final protected def modelClassName(tableName: MQName): String = namingRules.modelClassName(tableName)
+  final protected def tableClassName(tableName: MQName): String = namingRules.tableClassName(tableName)
 
   /** Determine the base Scala type for a column. If the column is nullable, the type returned from this method will be
     * wrapped in `Option[...]`.
@@ -174,7 +173,7 @@ class GenerationRules {
   def tableConfig(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]) =
     TableConfig(
       tableMetadata = currentTableMetadata,
-      tableClassName = tableNameToIdentifier(currentTableMetadata.table.name),
+      tableClassName = tableClassName(currentTableMetadata.table.name),
       modelClassName = modelClassName(currentTableMetadata.table.name),
       columns = columnConfigs(currentTableMetadata, all)
     )
