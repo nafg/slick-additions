@@ -1,5 +1,4 @@
 package entity
-import slick.additions.entity.Lookup
 case class ColorsRow(name: String)
 case class PeopleRow(
     first: String,
@@ -7,7 +6,7 @@ case class PeopleRow(
     city: String = "New York",
     dateJoined: java.time.LocalDate = java.time.LocalDate.now(),
     balance: BigDecimal = BigDecimal("0.0"),
-    bestFriend: Option[Lookup[Long, PeopleRow]] = None,
+    bestFriend: Option[slick.additions.entity.Lookup[Long, PeopleRow]] = None,
     col8: Option[Double] = None,
     col9: Option[Boolean] = None,
     col10: Option[Int] = None,

@@ -6,7 +6,7 @@ trait SlickProfile extends slick.jdbc.H2Profile with AdditionsProfile {
 }
 object SlickProfile extends SlickProfile
 import SlickProfile.api._
-import slick.lifted.MappedProjection, slick.additions.entity.Lookup
+import slick.lifted.MappedProjection
 object TableModules {
   object Colors extends EntityTableModule[Long, ColorsRow]("colors") {
     class Row(tag: Tag) extends BaseEntRow(tag) {
@@ -21,24 +21,27 @@ object TableModules {
       val city       = column[String]("city")
       val dateJoined = column[java.time.LocalDate]("date_joined")
       val balance    = column[BigDecimal]("balance")
-      val bestFriend = column[Option[Lookup[Long, PeopleRow]]]("best_friend")
-      val col8       = column[Option[Double]]("col8")
-      val col9       = column[Option[Boolean]]("col9")
-      val col10      = column[Option[Int]]("col10")
-      val col11      = column[Option[Int]]("col11")
-      val col12      = column[Option[Int]]("col12")
-      val col13      = column[Option[Int]]("col13")
-      val col14      = column[Option[Int]]("col14")
-      val col15      = column[Option[Int]]("col15")
-      val col16      = column[Option[Int]]("col16")
-      val col17      = column[Option[Int]]("col17")
-      val col18      = column[Option[Int]]("col18")
-      val col19      = column[Option[Int]]("col19")
-      val col20      = column[Option[Int]]("col20")
-      val col21      = column[Option[Int]]("col21")
-      val col22      = column[Option[Int]]("col22")
-      val col23      = column[Option[Int]]("col23")
-      val col24      = column[Option[Int]]("col24")
+      val bestFriend =
+        column[Option[slick.additions.entity.Lookup[Long, PeopleRow]]](
+          "best_friend"
+        )
+      val col8                                 = column[Option[Double]]("col8")
+      val col9                                 = column[Option[Boolean]]("col9")
+      val col10                                = column[Option[Int]]("col10")
+      val col11                                = column[Option[Int]]("col11")
+      val col12                                = column[Option[Int]]("col12")
+      val col13                                = column[Option[Int]]("col13")
+      val col14                                = column[Option[Int]]("col14")
+      val col15                                = column[Option[Int]]("col15")
+      val col16                                = column[Option[Int]]("col16")
+      val col17                                = column[Option[Int]]("col17")
+      val col18                                = column[Option[Int]]("col18")
+      val col19                                = column[Option[Int]]("col19")
+      val col20                                = column[Option[Int]]("col20")
+      val col21                                = column[Option[Int]]("col21")
+      val col22                                = column[Option[Int]]("col22")
+      val col23                                = column[Option[Int]]("col23")
+      val col24                                = column[Option[Int]]("col24")
       def mapping: MappedProjection[PeopleRow] = (
         (
           first,
