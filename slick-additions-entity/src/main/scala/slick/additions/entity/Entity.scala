@@ -9,7 +9,7 @@ sealed trait EntityRef[K, +A] {
 sealed trait Lookup[K, +A] extends EntityRef[K, A] {
   def key: K
   override def transform[B](f: A => B): Lookup[K, B]
-  override def updated[B](value: B): Lookup[K, B]
+  override def updated[B](value: B): ModifiedEntity[K, B]
   override def widen[B >: A]: Lookup[K, B]
 
   def asLookup: Lookup[K, A] = this
@@ -29,11 +29,11 @@ sealed trait Lookup[K, +A] extends EntityRef[K, A] {
 }
 
 case class EntityKey[K, +A](override val key: K) extends Lookup[K, A] {
-  override def transform[B](f: A => B): EntityKey[K, B]   = copy()
-  override def updated[B](value: B): ModifiedEntity[K, B] = ModifiedEntity(key, value)
-  override def widen[B >: A]: EntityKey[K, B]             = transform(identity)
-  override def toEntityKey                                = this
-  def asKeyOf[B]                                          = copy[K, B]()
+  override def transform[B](f: A => B): EntityKey[K, B] = copy()
+  override def updated[B](value: B)                     = ModifiedEntity(key, value)
+  override def widen[B >: A]: EntityKey[K, B]           = transform(identity)
+  override def toEntityKey                              = this
+  def asKeyOf[B]                                        = copy[K, B]()
 }
 
 sealed trait Entity[K, +A]                             extends EntityRef[K, A] {
@@ -78,7 +78,7 @@ sealed trait KeyedEntity[K, +A]
   override def transform[B](f: A => B): KeyedEntity[K, B]
   override def widen[B >: A]: KeyedEntity[K, B]
   override def modify[B](f: A => B): ModifiedEntity[K, B] = ModifiedEntity[K, B](key, f(value))
-  override def updated[B](value: B): ModifiedEntity[K, B] = ModifiedEntity(key, value)
+  override def updated[B](value: B)                       = ModifiedEntity(key, value)
 
   def toSaved: SavedEntity[K, A]            = SavedEntity(key, value)
   override def toEntityKey: EntityKey[K, A] = EntityKey(key)
