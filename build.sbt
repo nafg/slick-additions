@@ -21,25 +21,24 @@ lazy val `slick-additions-entity` =
 
 val slickVersion = "3.6.1"
 
-lazy val `slick-additions` =
-  (project in file("."))
-    .dependsOn(`slick-additions-entity`.jvm)
-    .aggregate(
-      `slick-additions-entity`.jvm,
-      `slick-additions-entity`.js,
-      `slick-additions-codegen`,
-      `slick-additions-testcontainers`,
-      `test-codegen`
+lazy val `slick-additions` = (project in file("."))
+  .dependsOn(`slick-additions-entity`.jvm)
+  .aggregate(
+    `slick-additions-entity`.jvm,
+    `slick-additions-entity`.js,
+    `slick-additions-codegen`,
+    `slick-additions-testcontainers`,
+    `test-codegen`
+  )
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.slick" %% "slick"           % slickVersion,
+      "com.lihaoyi"        %% "sourcecode"      % "0.4.4",
+      "org.scalatest"      %% "scalatest"       % "3.2.19"  % "test",
+      "com.h2database"      % "h2"              % "2.4.240" % "test",
+      "ch.qos.logback"      % "logback-classic" % "1.5.24"  % "test"
     )
-    .settings(
-      libraryDependencies ++= Seq(
-        "com.typesafe.slick" %% "slick"           % slickVersion,
-        "com.lihaoyi"        %% "sourcecode"      % "0.4.4",
-        "org.scalatest"      %% "scalatest"       % "3.2.19"  % "test",
-        "com.h2database"      % "h2"              % "2.4.240" % "test",
-        "ch.qos.logback"      % "logback-classic" % "1.5.24"  % "test"
-      )
-    )
+  )
 
 lazy val `slick-additions-codegen` =
   project
@@ -48,7 +47,7 @@ lazy val `slick-additions-codegen` =
         "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
         ("org.scalameta"     %% "scalameta"      % "4.14.4")
           .cross(CrossVersion.for3Use2_13),
-        ("org.scalameta"     %% "scalafmt-core"  % "3.10.3")
+        ("org.scalameta"     %% "scalafmt-core"  % "3.10.4")
           .cross(CrossVersion.for3Use2_13),
         "com.h2database"      % "h2"             % "2.4.240" % "test",
         "org.scalatest"      %% "scalatest"      % "3.2.19"  % "test"
