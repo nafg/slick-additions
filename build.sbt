@@ -36,7 +36,7 @@ lazy val `slick-additions` = (project in file("."))
       "com.lihaoyi"        %% "sourcecode"      % "0.4.4",
       "org.scalatest"      %% "scalatest"       % "3.2.19"  % "test",
       "com.h2database"      % "h2"              % "2.4.240" % "test",
-      "ch.qos.logback"      % "logback-classic" % "1.5.29"  % "test"
+      "ch.qos.logback"      % "logback-classic" % "1.5.30"  % "test"
     )
   )
 
