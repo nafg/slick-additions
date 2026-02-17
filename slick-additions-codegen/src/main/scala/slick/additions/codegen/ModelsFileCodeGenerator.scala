@@ -5,6 +5,11 @@ import scala.meta.*
 import slick.additions.codegen.ScalaMetaDsl.{defClass, termParam}
 
 
+/** Per-table code generator that produces a model case class for one table.
+  *
+  * @see
+  *   [[KeylessModelsObjectCodeGenerator]] which filters out primary key columns
+  */
 class ModelsObjectCodeGenerator(protected val tableConfig: TableConfig) extends ObjectCodeGenerator {
   protected def columnConfigs = tableConfig.columns
 

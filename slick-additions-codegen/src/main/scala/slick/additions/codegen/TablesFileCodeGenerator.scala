@@ -30,6 +30,11 @@ trait TablesFileCodeGenerator extends FileCodeGenerator {
     new TablesObjectCodeGenerator(tableConfig)
 }
 
+/** Per-table code generator that produces a standard Slick table definition (a `Table` subclass and `TableQuery` val).
+  *
+  * @see
+  *   [[EntityTableModulesObjectCodeGenerator]] which extends this to use slick-additions `EntityTableModule`
+  */
 class TablesObjectCodeGenerator(protected val tableConfig: TableConfig) extends ObjectCodeGenerator {
   // noinspection ScalaWeakerAccess
   def isDefaultSchema(schema: String) = schema == "public"
