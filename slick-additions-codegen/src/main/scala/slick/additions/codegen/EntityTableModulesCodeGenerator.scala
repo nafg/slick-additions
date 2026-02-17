@@ -70,9 +70,12 @@ trait EntityTableModulesObjectCodeGenerator extends TablesObjectCodeGenerator {
   protected def partitionPrimaryKey: (List[ColumnConfig], List[ColumnConfig]) =
     tableConfig.columns.partition(c => tableConfig.tableMetadata.primaryKeys.exists(_.column == c.column.name))
 
-  // noinspection ScalaWeakerAccess
-  protected def tableModuleBase(pk: ColumnConfig) =
+  protected def tableModuleBaseType(pk: ColumnConfig): Type =
     typ"EntityTableModule".typeApply(pk.scalaType, typ"${tableConfig.modelClassName}")
+
+  // noinspection ScalaWeakerAccess
+  protected def tableModuleBases(pk: ColumnConfig) =
+    Seq(init(tableModuleBaseType(pk), Seq(Seq(Lit.String(pk.column.table.name)))))
 
   // noinspection ScalaWeakerAccess
   protected def tableRowBase = typ"BaseEntRow"
@@ -84,10 +87,7 @@ trait EntityTableModulesObjectCodeGenerator extends TablesObjectCodeGenerator {
     partitionPrimaryKey match {
       case (Seq(pk), otherCols) =>
         List(
-          defObject(
-            Term.Name(tableConfig.tableClassName),
-            init(tableModuleBase(pk), Seq(Seq(Lit.String(tableConfig.tableMetadata.table.name.name))))
-          )(
+          defObject(Term.Name(tableConfig.tableClassName), tableModuleBases(pk)*)(
             List(
               defClass(
                 "Row",
