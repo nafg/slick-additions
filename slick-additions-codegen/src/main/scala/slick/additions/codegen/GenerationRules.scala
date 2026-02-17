@@ -72,6 +72,17 @@ class GenerationRules {
   // noinspection ScalaWeakerAccess,ScalaUnusedSymbol
   protected def includeTable(table: MTable): Boolean = true
 
+  /** Whether to include a column in the generated code. Override to exclude infrastructure columns (e.g. tenant IDs,
+    * audit timestamps).
+    *
+    * @param column
+    *   the column metadata
+    * @param currentTableMetadata
+    *   the table this column belongs to
+    */
+  // noinspection ScalaWeakerAccess,ScalaUnusedSymbol
+  protected def includeColumn(column: MColumn, currentTableMetadata: TableMetadata): Boolean = true
+
   // noinspection ScalaWeakerAccess
   protected def namingRules: NamingRules = NamingRules.ModelSuffixedWithRow
 
@@ -168,7 +179,9 @@ class GenerationRules {
   }
 
   def columnConfigs(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]) =
-    currentTableMetadata.columns.toList.map(columnConfig(_, currentTableMetadata, all))
+    currentTableMetadata.columns.toList
+      .filter(includeColumn(_, currentTableMetadata))
+      .map(columnConfig(_, currentTableMetadata, all))
 
   def tableConfig(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]) =
     TableConfig(
