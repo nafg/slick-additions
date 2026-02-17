@@ -27,4 +27,16 @@ package object codegen {
   object ColType {
     def unapply(col: MColumn) = Some((col.sqlType, col.typeName.toLowerCase, col.columnDef))
   }
+
+  /** Extractor for matching a column by its table name and column name. Useful in `columnTypeOverride` and
+    * `includeColumn` overrides for per-column matching.
+    *
+    * @example
+    *   {{{
+    * case ColName("hotline", "phone_number") => typ"PhoneNumber"
+    *   }}}
+    */
+  object ColName {
+    def unapply(col: MColumn): Some[(String, String)] = Some((col.table.name, col.name))
+  }
 }
