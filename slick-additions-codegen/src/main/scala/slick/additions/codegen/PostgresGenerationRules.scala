@@ -6,7 +6,10 @@ import slick.additions.codegen.ScalaMetaDsl.{scalametaNonMacroInterpolators, sca
 
 
 trait PostgresGenerationRules extends GenerationRules {
-  override def baseColumnType(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]) =
+  override protected def baseColumnType(
+    currentTableMetadata: GenerationRules.TableMetadata,
+    all: Seq[GenerationRules.TableMetadata]
+  ) =
     super.baseColumnType(currentTableMetadata, all)
       .orElse {
         case ColType(Types.TIMESTAMP, "timestamp", _) => typ"Instant"
@@ -16,7 +19,10 @@ trait PostgresGenerationRules extends GenerationRules {
 
 //noinspection ScalaUnusedSymbol
 trait PostgresArrayGenerationRules extends PostgresGenerationRules {
-  override def baseColumnType(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]) =
+  override protected def baseColumnType(
+    currentTableMetadata: GenerationRules.TableMetadata,
+    all: Seq[GenerationRules.TableMetadata]
+  ) =
     super.baseColumnType(currentTableMetadata, all)
       .orElse {
         case col @ ColType(Types.ARRAY, name, _) if name.startsWith("_") =>

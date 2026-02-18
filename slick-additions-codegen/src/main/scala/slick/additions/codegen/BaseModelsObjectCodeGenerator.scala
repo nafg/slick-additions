@@ -1,6 +1,6 @@
 package slick.additions.codegen
 
-import scala.meta.*
+import scala.meta.{Init, Mod, Stat, Term}
 
 import slick.additions.codegen.ScalaMetaDsl.{defClass, defObject, termParam}
 
@@ -12,10 +12,10 @@ import slick.additions.codegen.ScalaMetaDsl.{defClass, defObject, termParam}
   *   - [[modelObjectBases]] to generate a companion object with base types
   *
   * @see
-  *   [[KeylessModelsObjectCodeGenerator]] which filters out primary key columns
+  *   [[EntityModelsObjectCodeGenerator]] which filters out primary key columns
   */
-class ModelsObjectCodeGenerator(protected val tableConfig: TableConfig) extends ObjectCodeGenerator {
-  protected def columnConfigs = tableConfig.columns
+class BaseModelsObjectCodeGenerator(protected val modelClassName: String, columnConfigs: List[ColumnConfig])
+    extends ObjectCodeGenerator {
 
   /** Base types for the model case class (the `extends` clause).
     *
@@ -25,7 +25,7 @@ class ModelsObjectCodeGenerator(protected val tableConfig: TableConfig) extends 
 
   protected def modelClass =
     defClass(
-      tableConfig.modelClassName,
+      modelClassName,
       modifiers = List(Mod.Case()),
       params =
         columnConfigs.map { col =>
@@ -46,17 +46,10 @@ class ModelsObjectCodeGenerator(protected val tableConfig: TableConfig) extends 
     else
       Some(
         defObject(
-          Term.Name(tableConfig.modelClassName),
+          Term.Name(modelClassName),
           modelObjectBases*
         )()
       )
 
   def statements: List[Stat] = modelClass :: modelObject.toList
-}
-
-/** Code generator that produces a case class for each table to represent a row in code
-  */
-trait ModelsFileCodeGenerator extends FileCodeGenerator {
-  def objectCodeGenerator(tableConfig: TableConfig): ModelsObjectCodeGenerator =
-    new ModelsObjectCodeGenerator(tableConfig)
 }

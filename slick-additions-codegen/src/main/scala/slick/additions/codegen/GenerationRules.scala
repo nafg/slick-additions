@@ -13,58 +13,19 @@ import slick.jdbc.meta.*
 import org.slf4j.LoggerFactory
 
 
-/** Information about a table obtained from the Slick JDBC metadata APIs
-  */
-case class TableMetadata(
-  table: MTable,
-  columns: Seq[MColumn],
-  primaryKeys: Seq[MPrimaryKey],
-  foreignKeys: Seq[MForeignKey])
-
-/** How a database column is to be represented in code
+/** Generates object configs (e.g. [[TableConfig]]s) and their [[ColumnConfig]]s by reading database metadata. Extend
+  * this directly or indirectly, and override methods freely to customize.
   *
-  * @param column
-  *   the column this is for
-  * @param tableFieldTerm
-  *   the identifier used in the Slick table definition
-  * @param modelFieldTerm
-  *   the identifier used in the model class
-  * @param scalaType
-  *   the type that will represent data in the column in code
-  * @param scalaDefault
-  *   the default value to provide in the model class
-  */
-case class ColumnConfig(
-  column: MColumn,
-  tableFieldTerm: Term.Name,
-  modelFieldTerm: Term.Name,
-  scalaType: Type,
-  scalaDefault: Option[Term])
-
-/** How a database table is to be represented in code
+  * Subclasses define `ObjectConfigType` to determine what kind of config is produced:
+  *   - [[BasicGenerationRules]] produces [[TableConfig]]
+  *   - [[EntityGenerationRules]] produces [[EntityGenerationRules.ObjectConfig]] (a sealed trait)
   *
-  * @param tableMetadata
-  *   the metadata for the table this is for
-  * @param tableClassName
-  *   the name of the Slick table definition
-  * @param modelClassName
-  *   the name of the model class
-  * @param columns
-  *   configurations for this table's columns
+  * The default implementation uses camelCase for corresponding snake_case names in the database, and names model classes
+  * by appending `Row` to the camel-cased table name.
   */
-case class TableConfig(
-  tableMetadata: TableMetadata,
-  tableClassName: String,
-  modelClassName: String,
-  columns: List[ColumnConfig])
+trait GenerationRules  {
+  type ObjectConfigType
 
-/** Generates [[TableConfig]]s (and their [[ColumnConfig]]s) by reading database metadata. Extend this directly or
-  * indirectly, and override methods freely to customize.
-  *
-  * The default implementation generates code that does not use `slick-additions`, uses camelCase for corresponding
-  * snake_case names in the database, and names model classes by appending `Row` to the camel-cased table name.
-  */
-class GenerationRules {
   private val logger = LoggerFactory.getLogger(getClass)
 
   def extraImports = List.empty[String]
@@ -81,15 +42,10 @@ class GenerationRules {
     *   the table this column belongs to
     */
   // noinspection ScalaWeakerAccess,ScalaUnusedSymbol
-  protected def includeColumn(column: MColumn, currentTableMetadata: TableMetadata): Boolean = true
+  protected def includeColumn(column: MColumn, currentTableMetadata: GenerationRules.TableMetadata): Boolean = true
 
   // noinspection ScalaWeakerAccess
   protected def namingRules: NamingRules = NamingRules.ModelSuffixedWithRow
-
-  // noinspection ScalaWeakerAccess
-  final protected def columnNameToIdentifier(name: String)      = namingRules.columnNameToIdentifier(name)
-  final protected def modelClassName(tableName: MQName): String = namingRules.modelClassName(tableName)
-  final protected def tableClassName(tableName: MQName): String = namingRules.tableClassName(tableName)
 
   /** Determine the base Scala type for a column. If the column is nullable, the type returned from this method will be
     * wrapped in `Option[...]`.
@@ -102,7 +58,11 @@ class GenerationRules {
     * @see
     *   [[columnConfig]]
     */
-  def baseColumnType(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): PartialFunction[MColumn, Type] = {
+  protected def baseColumnType(
+    currentTableMetadata: GenerationRules.TableMetadata,
+    all: Seq[GenerationRules.TableMetadata]
+  )
+    : PartialFunction[MColumn, Type] = {
     case ColType(Types.NUMERIC, "numeric", _)                                => typ"BigDecimal"
     case ColType(Types.DOUBLE, "double precision" | "float8", _)             => typ"Double"
     case ColType(Types.BIGINT, "bigserial" | "bigint" | "int8", _)           => typ"Long"
@@ -127,7 +87,10 @@ class GenerationRules {
     *   [[columnConfig]]
     */
   // noinspection ScalaWeakerAccess,ScalaUnusedSymbol
-  protected def baseColumnDefault(currentTableMetadata: TableMetadata, all: Seq[TableMetadata])
+  protected def baseColumnDefault(
+    currentTableMetadata: GenerationRules.TableMetadata,
+    all: Seq[GenerationRules.TableMetadata]
+  )
     : PartialFunction[MColumn, Term] = {
     case ColType(Types.BIT, "boolean" | "bool", Some(AsBoolean(b)))              => Lit.Boolean(b)
     case ColType(Types.INTEGER, _, Some(AsInt(i)))                               => Lit.Int(i)
@@ -145,7 +108,11 @@ class GenerationRules {
       Lit.String(s.stripPrefix("'").stripSuffix("'"))
   }
 
-  protected def baseColumnType(currentTableMetadata: TableMetadata, all: Seq[TableMetadata], column: MColumn): Type =
+  protected def baseColumnType(
+    currentTableMetadata: GenerationRules.TableMetadata,
+    all: Seq[GenerationRules.TableMetadata],
+    column: MColumn
+  ): Type =
     baseColumnType(currentTableMetadata, all).applyOrElse(
       column,
       (_: MColumn) => {
@@ -157,8 +124,13 @@ class GenerationRules {
     )
 
   // noinspection ScalaWeakerAccess
-  def columnConfig(column: MColumn, currentTableMetadata: TableMetadata, all: Seq[TableMetadata]): ColumnConfig = {
-    val ident    = Term.Name(columnNameToIdentifier(column.name))
+  protected def columnConfig(
+    column: MColumn,
+    currentTableMetadata: GenerationRules.TableMetadata,
+    all: Seq[GenerationRules.TableMetadata]
+  )
+    : ColumnConfig = {
+    val ident    = Term.Name(namingRules.columnNameToIdentifier(column.name))
     val typ0     = baseColumnType(currentTableMetadata, all, column)
     val default0 = baseColumnDefault(currentTableMetadata, all).lift(column)
 
@@ -178,21 +150,22 @@ class GenerationRules {
     )
   }
 
-  def columnConfigs(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]) =
+  protected def columnConfigs(
+    currentTableMetadata: GenerationRules.TableMetadata,
+    all: Seq[GenerationRules.TableMetadata]
+  ) =
     currentTableMetadata.columns.toList
       .filter(includeColumn(_, currentTableMetadata))
       .map(columnConfig(_, currentTableMetadata, all))
 
-  def tableConfig(currentTableMetadata: TableMetadata, all: Seq[TableMetadata]) =
-    TableConfig(
-      tableMetadata = currentTableMetadata,
-      tableClassName = tableClassName(currentTableMetadata.table.name),
-      modelClassName = modelClassName(currentTableMetadata.table.name),
-      columns = columnConfigs(currentTableMetadata, all)
-    )
+  protected def objectConfig(
+    currentTableMetadata: GenerationRules.TableMetadata,
+    all: Seq[GenerationRules.TableMetadata]
+  )
+    : ObjectConfigType
 
-  def tableConfigs(slickProfileClass: Class[_ <: JdbcProfile])(implicit ec: ExecutionContext)
-    : DBIO[List[TableConfig]] = {
+  def objectConfigs(slickProfileClass: Class[? <: JdbcProfile])(implicit ec: ExecutionContext)
+    : DBIO[List[ObjectConfigType]] = {
     val slickProfileInstance = slickProfileClass.getField("MODULE$").get(null).asInstanceOf[JdbcProfile]
     for {
       tables        <- slickProfileInstance.defaultTables
@@ -203,7 +176,7 @@ class GenerationRules {
                              cols <- t.getColumns
                              pks  <- t.getPrimaryKeys
                              fks  <- t.getImportedKeys
-                           } yield TableMetadata(
+                           } yield GenerationRules.TableMetadata(
                              table = t,
                              columns = cols,
                              primaryKeys = pks,
@@ -211,6 +184,16 @@ class GenerationRules {
                            )
                          }
                        )
-    } yield infos.map(tableConfig(_, infos))
+    } yield infos.map(objectConfig(_, infos))
   }
+}
+object GenerationRules {
+
+  /** Information about a table obtained from the Slick JDBC metadata APIs
+    */
+  case class TableMetadata(
+    table: MTable,
+    columns: Seq[MColumn],
+    primaryKeys: Seq[MPrimaryKey],
+    foreignKeys: Seq[MForeignKey])
 }
