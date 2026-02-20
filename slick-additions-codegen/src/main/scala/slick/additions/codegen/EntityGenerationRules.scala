@@ -5,13 +5,10 @@ import slick.jdbc.meta.MQName
 
 
 trait LookupColumnGenerationRules extends GenerationRules {
-  override protected def baseColumnType(
-    currentTableMetadata: GenerationRules.TableMetadata,
-    all: Seq[GenerationRules.TableMetadata]
-  ) =
+  override protected def baseColumnType =
     Function.unlift { column =>
-      super.baseColumnType(currentTableMetadata, all).lift(column).map { keyType =>
-        currentTableMetadata.foreignKeys.find(_.fkColumn == column.name) match {
+      super.baseColumnType.lift(column).map { keyType =>
+        column.foreignKey match {
           case None     => keyType
           case Some(fk) =>
             term"slick".termSelect("additions").termSelect("entity")
@@ -29,27 +26,19 @@ trait LookupColumnGenerationRules extends GenerationRules {
 trait EntityGenerationRules extends LookupColumnGenerationRules {
   override type ObjectConfigType = EntityGenerationRules.ObjectConfig
 
-  override protected def objectConfig(
-    currentTableMetadata: GenerationRules.TableMetadata,
-    all: Seq[GenerationRules.TableMetadata]
-  ): EntityGenerationRules.ObjectConfig = {
-    val columns = columnConfigs(currentTableMetadata, all)
-    EntityGenerationRules.partitionPrimaryKey(currentTableMetadata, columns) match {
+  override protected def objectConfig(tableMetadata: GenerationRules.TableMetadata)
+    : EntityGenerationRules.ObjectConfig = {
+    val columns = columnConfigs(tableMetadata)
+    EntityGenerationRules.partitionPrimaryKey(tableMetadata, columns) match {
       case (Seq(pk), nonPkColumns) =>
         EntityGenerationRules.ObjectConfig.EntityTable(
-          currentTableMetadata.table.name,
+          tableMetadata.table.name,
           pk,
           nonPkColumns,
           namingRules
         )
       case _                       =>
-        EntityGenerationRules.ObjectConfig.BasicTable(
-          TableConfig(
-            currentTableMetadata.table.name,
-            columns,
-            namingRules
-          )
-        )
+        EntityGenerationRules.ObjectConfig.BasicTable(TableConfig(tableMetadata.table.name, columns, namingRules))
     }
   }
 

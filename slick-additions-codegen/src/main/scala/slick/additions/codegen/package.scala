@@ -2,8 +2,6 @@ package slick.additions
 
 import scala.util.Try
 
-import slick.jdbc.meta.MColumn
-
 
 package object codegen {
   def snakeToCamel(s: String) = {
@@ -24,19 +22,25 @@ package object codegen {
   val AsInt    = new TryExtractor(_.toInt)
   val AsDouble = new TryExtractor(_.toDouble)
 
+  /** Extractor that destructures a [[GenerationRules.ColumnMetadata]] into `(sqlType, typeNameLower, columnDef)`.
+    * Useful in [[GenerationRules.baseColumnDefault]] overrides for matching by type name and default value.
+    */
   object ColType {
-    def unapply(col: MColumn) = Some((col.sqlType, col.typeName.toLowerCase, col.columnDef))
+    def unapply(col: GenerationRules.ColumnMetadata) = Some((col.jdbcType, col.typeNameLower, col.default))
   }
 
-  /** Extractor for matching a column by its table name and column name. Useful in `columnTypeOverride` and
-    * `includeColumn` overrides for per-column matching.
+  /** Extractor for matching a column by its table name and column name. Useful in [[GenerationRules.baseColumnType]]
+    * and [[GenerationRules.includeColumn]] overrides for per-column matching.
     *
     * @example
     *   {{{
-    * case ColName("hotline", "phone_number") => typ"PhoneNumber"
+    * override def baseColumnType =
+    *   super.baseColumnType.asFallbackFor {
+    *     case ColName("hotline", "phone_number") => typ"PhoneNumber"
+    *   }
     *   }}}
     */
   object ColName {
-    def unapply(col: MColumn): Some[(String, String)] = Some((col.table.name, col.name))
+    def unapply(col: GenerationRules.ColumnMetadata): Some[(String, String)] = Some((col.table.name, col.name))
   }
 }
