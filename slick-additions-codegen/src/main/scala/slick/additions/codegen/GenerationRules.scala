@@ -13,6 +13,29 @@ import slick.jdbc.meta.*
 import org.slf4j.LoggerFactory
 
 
+/** Provides the [[PartialFunction_asFallbackFor.asFallbackFor]] extension method on `PartialFunction`, which reverses
+  * the `orElse` composition order. This lets you write `super.baseColumnType.asFallbackFor { case ... => ... }` so that
+  * the new cases take priority without type inference issues from bare partial function literals.
+  */
+trait PartialFunctionUtils {
+  implicit class PartialFunction_asFallbackFor[A, B](self: PartialFunction[A, B]) {
+
+    /** Returns a `PartialFunction` that tries `other` first, falling back to `self`. Equivalent to
+      * `other.orElse(self)`, but avoids the Scala 2 type inference limitation where a bare `{ case ... }.orElse(x)`
+      * cannot infer the partial function's input type.
+      *
+      * @example
+      *   {{{
+      * override def baseColumnType =
+      *   super.baseColumnType.asFallbackFor {
+      *     case ColName("my_table", "my_col") => typ"MyType"
+      *   }
+      *   }}}
+      */
+    def asFallbackFor(other: PartialFunction[A, B]): PartialFunction[A, B] = other.orElse(self)
+  }
+}
+
 /** Generates object configs (e.g. [[TableConfig]]s) and their [[ColumnConfig]]s by reading database metadata. Extend
   * this directly or indirectly, and override methods freely to customize.
   *
@@ -20,10 +43,10 @@ import org.slf4j.LoggerFactory
   *   - [[BasicGenerationRules]] produces [[TableConfig]]
   *   - [[EntityGenerationRules]] produces [[EntityGenerationRules.ObjectConfig]] (a sealed trait)
   *
-  * The default implementation uses camelCase for corresponding snake_case names in the database, and names model classes
+  * The default implementation uses camelCase for corresponding snake_case names in the database and names model classes
   * by appending `Row` to the camel-cased table name.
   */
-trait GenerationRules  {
+trait GenerationRules extends PartialFunctionUtils {
   type ObjectConfigType
 
   private val logger = LoggerFactory.getLogger(getClass)
@@ -50,11 +73,15 @@ trait GenerationRules  {
   /** Determine the base Scala type for a column. If the column is nullable, the type returned from this method will be
     * wrapped in `Option[...]`.
     *
-    * Extend by overriding with `orElse`.
+    * Extend by overriding with `orElse` or [[PartialFunction_asFallbackFor.asFallbackFor]].
     *
     * @example
-    *   {{{ override def baseColumnType(current: TableMetadata, all: Seq[TableMetadata]) = super.baseColumnType(current,
-    *   all).orElse { case ... } }}}
+    *   {{{
+    * override def baseColumnType =
+    *   super.baseColumnType.asFallbackFor {
+    *     case ColName("my_table", "my_col") => typ"MyType"
+    *   }
+    *   }}}
     * @see
     *   [[columnConfig]]
     */
@@ -78,11 +105,16 @@ trait GenerationRules  {
   /** Determine the base Scala default value for a column. If the column is nullable, the expression returned from this
     * method will be wrapped in `Some(...)`.
     *
-    * Extend by overriding with `orElse`.
+    * Extend with `orElse` to add new default-value cases, or with [[PartialFunction_asFallbackFor.asFallbackFor]] to
+    * override existing ones.
     *
     * @example
-    *   {{{ override def baseColumnDefault(current: TableMetadata, all: Seq[TableMetadata]) =
-    *   super.baseColumnDefault(current, all).orElse { case ... } }}}
+    *   {{{
+    * override def baseColumnDefault =
+    *   super.baseColumnDefault.orElse {
+    *     case ColType(_, "my_type", Some(s)) => Lit.String(s)
+    *   }
+    *   }}}
     * @see
     *   [[columnConfig]]
     */
