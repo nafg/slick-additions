@@ -49,20 +49,26 @@ trait GenerationRules extends PartialFunctionUtils {
 
   private val logger = LoggerFactory.getLogger(getClass)
 
+  /** Additional import statements to include in the generated file header (e.g., for custom types used in type
+    * mappings).
+    */
   def extraImports = List.empty[String]
 
+  /** Whether to include a table in the generated code. By default, all tables are included.
+    */
   // noinspection ScalaWeakerAccess,ScalaUnusedSymbol
   protected def includeTable(table: MTable): Boolean = true
 
-  /** Whether to include a column in the generated code. Override to exclude infrastructure columns (e.g. tenant IDs,
-    * audit timestamps).
-    *
-    * @param column
-    *   the column metadata
+  /** Whether to include a column in the generated code. By default, all columns are included.
     */
   // noinspection ScalaWeakerAccess,ScalaUnusedSymbol
   protected def includeColumn(column: GenerationRules.ColumnMetadata): Boolean = true
 
+  /** The naming strategy for converting database names to Scala identifiers.
+    *
+    * @see
+    *   [[NamingRules.ModelSuffixedWithRow]], [[NamingRules.TablePluralModelSingular]]
+    */
   // noinspection ScalaWeakerAccess
   protected def namingRules: NamingRules = NamingRules.ModelSuffixedWithRow
 

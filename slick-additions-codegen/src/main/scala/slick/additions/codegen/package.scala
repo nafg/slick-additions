@@ -15,13 +15,24 @@ package object codegen {
     loop(s.toList).mkString
   }
 
+  /** Extractor that parses a string into type `A` using a conversion function, returning `None` on failure. Used by
+    * [[AsBoolean]], [[AsInt]], [[AsLong]], and [[AsDouble]] to parse column default value strings.
+    */
   class TryExtractor[A](f: String => A) {
     def unapply(string: String) = Try(f(string)).toOption
   }
+
+  /** Extracts a `Boolean` from a column default value string. */
   val AsBoolean = new TryExtractor(_.toBoolean)
-  val AsInt     = new TryExtractor(_.toInt)
-  val AsLong    = new TryExtractor(_.toLong)
-  val AsDouble  = new TryExtractor(_.toDouble)
+
+  /** Extracts an `Int` from a column default value string. */
+  val AsInt = new TryExtractor(_.toInt)
+
+  /** Extracts a `Long` from a column default value string. */
+  val AsLong = new TryExtractor(_.toLong)
+
+  /** Extracts a `Double` from a column default value string. */
+  val AsDouble = new TryExtractor(_.toDouble)
 
   /** Extractor that destructures a [[GenerationRules.ColumnMetadata]] into `(sqlType, typeNameLower, columnDef)`.
     * Useful in [[GenerationRules.baseColumnDefault]] overrides for matching by type name and default value.

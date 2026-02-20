@@ -4,6 +4,10 @@ import slick.additions.codegen.ScalaMetaDsl.*
 import slick.jdbc.meta.MQName
 
 
+/** Wraps foreign key column types in `Lookup[K, V]` where `K` is the key type and `V` is the referenced model type.
+  * Override [[GenerationRules.baseColumnType]] to resolve the key type from the column, then wrap it in `Lookup` if a
+  * foreign key is present.
+  */
 trait LookupColumnGenerationRules extends GenerationRules {
   override protected def baseColumnType =
     Function.unlift { column =>
@@ -49,9 +53,16 @@ object EntityGenerationRules {
     : (List[ColumnConfig], List[ColumnConfig]) =
     columns.partition(c => tableMetadata.primaryKeys.exists(_.column == c.column.name))
 
+  /** Per-table configuration produced by [[EntityGenerationRules]]. Tables with a single primary key column produce
+    * [[ObjectConfig.EntityTable]]; all others produce [[ObjectConfig.BasicTable]].
+    */
   sealed trait ObjectConfig
   object ObjectConfig {
+
+    /** A table without a single primary key column, falling back to a plain [[TableConfig]]. */
     case class BasicTable(tableConfig: TableConfig) extends ObjectConfig
+
+    /** A table with a single primary key column, separated into key and value columns for entity generation. */
     case class EntityTable(
       tableClassName: String,
       modelClassName: String,
