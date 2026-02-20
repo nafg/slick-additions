@@ -126,6 +126,7 @@ trait GenerationRules extends PartialFunctionUtils {
   protected def baseColumnDefault: PartialFunction[GenerationRules.ColumnMetadata, Term] = {
     case ColType(_, "boolean", Some(AsBoolean(b)))            => Lit.Boolean(b)
     case ColType(_, "integer", Some(AsInt(i)))                => Lit.Int(i)
+    case ColType(_, "bigint", Some(AsLong(l)))                => Lit.Long(l)
     case ColType(_, "double precision", Some(AsDouble(d)))    => Lit.Double(d)
     case ColType(_, "character varying" | "varchar", Some(s)) => Lit.String(s.stripPrefix("'").stripSuffix("'"))
     case ColType(_, "numeric", Some(s))                       => term"BigDecimal".termApply(Lit.String(s))
