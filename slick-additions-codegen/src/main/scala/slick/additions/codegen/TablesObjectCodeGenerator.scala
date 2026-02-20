@@ -8,6 +8,8 @@ import slick.additions.codegen.ScalaMetaDsl.{
 }
 import slick.jdbc.meta.MQName
 
+import org.slf4j.LoggerFactory
+
 
 /** Per-table code generator that produces a standard Slick table definition (a `Table` subclass and `TableQuery` val).
   *
@@ -15,6 +17,8 @@ import slick.jdbc.meta.MQName
   *   [[EntityTableModulesObjectCodeGenerator]] for the slick-additions `EntityTableModule` variant
   */
 class TablesObjectCodeGenerator(protected val tableConfig: TableConfig) extends SlickObjectCodeGenerator {
+  private val logger = LoggerFactory.getLogger(getClass)
+
   // noinspection ScalaWeakerAccess
   def isDefaultSchema(schema: String) = schema == "public"
 
@@ -24,7 +28,7 @@ class TablesObjectCodeGenerator(protected val tableConfig: TableConfig) extends 
         val fields        = columns.map(columnField)
         val mapping       = mkMapping(modelClassName, "*", columns)
         tableName.catalog.foreach { catalog =>
-          println(s"Warning: ignoring catalog ($catalog)")
+          logger.warn(s"Ignoring catalog ($catalog)")
         }
         val params        = tableName match {
           case MQName(_, Some(schema), name) if !isDefaultSchema(schema) =>
