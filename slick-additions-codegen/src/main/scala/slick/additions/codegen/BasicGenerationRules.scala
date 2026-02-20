@@ -3,13 +3,6 @@ package slick.additions.codegen
 class BasicGenerationRules extends GenerationRules {
   override type ObjectConfigType = TableConfig
 
-  override protected def objectConfig(
-    currentTableMetadata: GenerationRules.TableMetadata,
-    all: Seq[GenerationRules.TableMetadata]
-  ): TableConfig =
-    TableConfig(
-      currentTableMetadata.table.name,
-      columnConfigs(currentTableMetadata, all),
-      namingRules
-    )
+  override protected def objectConfig(tableMetadata: GenerationRules.TableMetadata): TableConfig =
+    TableConfig(tableMetadata.table.name, columnConfigs(tableMetadata), namingRules)
 }
