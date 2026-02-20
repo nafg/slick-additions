@@ -3,7 +3,7 @@ package slick.additions.codegen.extra.circe
 import scala.meta.Mod
 
 import slick.additions.codegen.ScalaMetaDsl.*
-import slick.additions.codegen.{ModelsFileCodeGenerator, ModelsObjectCodeGenerator, TableConfig}
+import slick.additions.codegen.{BaseModelsObjectCodeGenerator, ModelsFileCodeGenerator}
 
 
 /** Annotates model classes with Circe's `@JsonCodec`.
@@ -11,7 +11,7 @@ import slick.additions.codegen.{ModelsFileCodeGenerator, ModelsObjectCodeGenerat
   * Generated code requires `circe-generic`
   */
 //noinspection ScalaUnusedSymbol
-trait CirceJsonCodecModelsObjectCodeGenerator extends ModelsObjectCodeGenerator {
+trait CirceJsonCodecModelsObjectCodeGenerator extends BaseModelsObjectCodeGenerator {
   override protected def modelClass =
     super
       .modelClass

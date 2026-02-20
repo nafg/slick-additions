@@ -11,24 +11,23 @@ import org.scalatest.CompleteLastly
 object Util extends CompleteLastly {
   private val profile = slick.jdbc.H2Profile
 
-  import profile.api._
+  import profile.api.*
 
 
   private val slickConfig = ConfigFactory.parseResources("config.conf")
   private def db          = Database.forConfig("", slickConfig)
 
-  def writeToFile(generation: CodeGeneration)(implicit executionContext: ExecutionContext) =
-    generation.generator.writeToFileSync(
+  def writeToFile(generator: FileCodeGenerator)(implicit executionContext: ExecutionContext) =
+    generator.writeToFileSync(
       Paths.get(s"slick-additions-codegen/src/test/resources"),
-      Util.slickConfig,
-      generation.rules
+      Util.slickConfig
     )
 
-  def codeString(generation: CodeGeneration)(implicit executionContext: ExecutionContext): Future[String] =
+  def codeString(generator: FileCodeGenerator)(implicit executionContext: ExecutionContext)
+    : Future[String] =
     complete {
       db.run(
-        generation.generator.codeStringFormatted(
-          generation.rules,
+        generator.codeStringFormatted(
           Util.slickConfig.getString("profile")
         )
       )
