@@ -10,6 +10,17 @@ import slick.additions.codegen.ScalaMetaDsl.{
 }
 
 
+/** Adds PostgreSQL-specific type mappings and default value handlers.
+  *
+  * Maps Postgres type aliases (`int4`, `text`, `bool`, `float8`, `timestamp`, etc.) to Scala types, and handles
+  * Postgres-style defaults (`now()`, boolean literals, etc.).
+  *
+  * Also strips the `_` prefix from array type names (e.g. `_int4` becomes `int4`) so that the element type resolves
+  * correctly via [[baseColumnTypeMapping]].
+  *
+  * @see
+  *   [[PostgresArrayGenerationRules]] for wrapping array columns in `List[...]`
+  */
 trait PostgresGenerationRules extends GenerationRules {
   override protected def baseColumnTypeMapping =
     super.baseColumnTypeMapping.orElse {
@@ -40,6 +51,11 @@ trait PostgresGenerationRules extends GenerationRules {
     }
 }
 
+/** Extends [[PostgresGenerationRules]] to wrap PostgreSQL array columns in `List[...]`.
+  *
+  * Array columns are identified by the `_` prefix on their type name (e.g. `_int4` for `integer[]`). Override
+  * [[GenerationRules.transformColumnType]] to use a different collection type.
+  */
 //noinspection ScalaUnusedSymbol
 trait PostgresArrayGenerationRules extends PostgresGenerationRules {
   override protected def transformColumnType(column: GenerationRules.ColumnMetadata, baseType: Type) =

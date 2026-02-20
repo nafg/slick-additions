@@ -3,6 +3,13 @@ package slick.additions.codegen
 import slick.jdbc.meta.MQName
 
 
+/** Converts database names (table names, column names) to Scala identifiers.
+  *
+  * The default implementation converts `snake_case` to `camelCase` for columns and `CamelCase` for table/model names.
+  *
+  * @see
+  *   [[NamingRules.ModelSuffixedWithRow]], [[NamingRules.TablePluralModelSingular]]
+  */
 trait NamingRules {
   def columnNameToIdentifier(name: String): String = snakeToCamel(name)
   def tableNameToIdentifier(name: MQName): String  = snakeToCamel(name.name).capitalize

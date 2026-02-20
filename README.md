@@ -150,43 +150,20 @@ Useful for abstracting over tables that have a separate primary key column.
 ### `slick-additions-codegen`
 [![javadoc](https://javadoc.io/badge2/io.github.nafg/slick-additions-codegen_2.13/javadoc.svg)](https://javadoc.io/doc/io.github.nafg/slick-additions-codegen_2.13)
 
-Alternative code generator, based on Scalameta. Pretty incomplete but very
-easy to extend, in your own codebase or by sending a PR.
+An alternative to Slick's built-in code generator. Slick's codegen uses string concatenation and produces
+everything in a single monolithic file — model case classes, table definitions, and profile setup are all
+tangled together. This makes it hard to use the generated models outside of Slick (e.g. in a Scala.js
+frontend or a shared module).
 
-Example usage:
+`slick-additions-codegen` generates models as plain case classes with no Slick dependency, separate from
+table definitions. It uses [Scalameta](https://scalameta.org/) for AST construction (so output is always
+syntactically valid) and a composable trait architecture for customization.
 
 ```scala
-// In build.sbt
 libraryDependencies += "io.github.nafg" %% "slick-additions-codegen" % "latest.release"
-
-
-import com.typesafe.config.ConfigFactory
-import slick.jdbc.meta._
-import slick.additions.codegen._
-
-trait MyCodegenRulesBase extends EntityGenerationRules {
-  override def includeTable(table: MTable) =
-    table.name.schema.forall(_ == "public") && table.name.name != "flyway_schema_history"
-}
-
-object MyModelsCodeGenRules extends MyCodegenRulesBase {
-  override def packageName = "myapp.models"
-  override def container = "models"
-  override def extraImports = "myapp.JsonCodecs._" :: super.extraImports
-}
-object MyTablesCodeGenRules extends MyCodegenGenRulesBase {
-  override def packageName = "myapp.tables"
-  override def container = "Tables"
-  override def extraImports = "myapp.models._" :: "myapp.SlickColumnMappings._" :: super.extraImports
-}
-
-object MyModelsCodeGenerator extends KeylessModelsCodeGenerator with CirceJsonCodecModelsCodeGenerator
-object MyTablesCodeGenerator extends EntityTableModulesCodeGenerator
-
-val slickConfig = ConfigFactory.load().getConfig("slick.dbs.default")
-MyModelsCodeGenerator.doWriteToFile(baseDir, slickConfig, MyModelsCodeGenRules)
-MyTablesCodeGenerator.doWriteToFile(baseDir, slickConfig, MyTablesCodeGenRules)
 ```
+
+See the [codegen README](slick-additions-codegen/README.md) for architecture details, a quick start guide, and examples.
 
 
 ## `slick-additions-testcontainers`
