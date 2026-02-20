@@ -14,8 +14,9 @@ import slick.additions.codegen.ScalaMetaDsl.{defClass, defObject, termParam}
   * @see
   *   [[EntityModelsObjectCodeGenerator]] which filters out primary key columns
   */
-class BaseModelsObjectCodeGenerator(protected val modelClassName: String, columnConfigs: List[ColumnConfig])
-    extends ObjectCodeGenerator {
+class BaseModelsObjectCodeGenerator(
+  protected val modelClassName: String,
+  protected val columnConfigs: List[ColumnConfig]) extends ObjectCodeGenerator {
 
   /** Base types for the model case class (the `extends` clause).
     *
@@ -36,19 +37,25 @@ class BaseModelsObjectCodeGenerator(protected val modelClassName: String, column
 
   /** Base types for the model companion object (the `extends` clause).
     *
-    * When non-empty, a companion object is generated. The base traits can contribute members through inheritance.
+    * When non-empty (or when [[modelObjectStatements]] is non-empty), a companion object is generated.
     */
   protected def modelObjectBases: List[Init] = Nil
 
+  /** Statements to include in the model companion object body.
+    *
+    * Override to add members such as implicit codec instances or lenses.
+    */
+  protected def modelObjectStatements: List[Stat] = Nil
+
   protected def modelObject =
-    if (modelObjectBases.isEmpty)
+    if (modelObjectBases.isEmpty && modelObjectStatements.isEmpty)
       None
     else
       Some(
         defObject(
           Term.Name(modelClassName),
           modelObjectBases*
-        )()
+        )(modelObjectStatements)
       )
 
   def statements: List[Stat] = modelClass :: modelObject.toList
