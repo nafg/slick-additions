@@ -30,10 +30,13 @@ trait PostgresGenerationRules extends GenerationRules {
 
   override protected def baseColumnDefault =
     super.baseColumnDefault.orElse {
-      case ColType(_, "bool", Some(AsBoolean(b)))        => Lit.Boolean(b)
-      case ColType(_, "int4" | "serial", Some(AsInt(i))) => Lit.Int(i)
-      case ColType(_, "float8", Some(AsDouble(d)))       => Lit.Double(d)
-      case ColType(_, "text", Some(s))                   => Lit.String(s.stripPrefix("'").stripSuffix("'"))
+      case ColType(_, "bool", Some(AsBoolean(b)))                                    => Lit.Boolean(b)
+      case ColType(_, "int4" | "serial", Some(AsInt(i)))                             => Lit.Int(i)
+      case ColType(_, "int8" | "bigserial", Some(AsLong(l)))                         => Lit.Long(l)
+      case ColType(_, "float8", Some(AsDouble(d)))                                   => Lit.Double(d)
+      case ColType(_, "text", Some(s))                                               => Lit.String(s.stripPrefix("'").stripSuffix("'"))
+      case ColType(_, "timestamp" | "timestamptz", Some("now()" | "LOCALTIMESTAMP")) =>
+        term"java".termSelect("time").termSelect("Instant").termSelect("now").termApply()
     }
 }
 

@@ -19,8 +19,9 @@ package object codegen {
     def unapply(string: String) = Try(f(string)).toOption
   }
   val AsBoolean = new TryExtractor(_.toBoolean)
-  val AsInt    = new TryExtractor(_.toInt)
-  val AsDouble = new TryExtractor(_.toDouble)
+  val AsInt     = new TryExtractor(_.toInt)
+  val AsLong    = new TryExtractor(_.toLong)
+  val AsDouble  = new TryExtractor(_.toDouble)
 
   /** Extractor that destructures a [[GenerationRules.ColumnMetadata]] into `(sqlType, typeNameLower, columnDef)`.
     * Useful in [[GenerationRules.baseColumnDefault]] overrides for matching by type name and default value.
