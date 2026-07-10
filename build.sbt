@@ -47,7 +47,7 @@ lazy val `slick-additions-codegen` =
         "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
         ("org.scalameta"     %% "scalameta"      % "4.17.1")
           .cross(CrossVersion.for3Use2_13),
-        ("org.scalameta"     %% "scalafmt-core"  % "3.11.1")
+        ("org.scalameta"     %% "scalafmt-core"  % "3.11.2")
           .cross(CrossVersion.for3Use2_13),
         "com.h2database"      % "h2"             % "2.4.240" % "test",
         "org.scalatest"      %% "scalatest"      % "3.2.20"  % "test"
