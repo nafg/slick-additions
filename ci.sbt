@@ -44,7 +44,7 @@ inThisBuild(List(
       name = Some("Check that codegen output hasn't changed")
     )
   ),
-  githubWorkflowJavaVersions          := Seq(JavaSpec.temurin("11")),
+  githubWorkflowJavaVersions          := Seq(JavaSpec.temurin("17")),
   githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
   githubWorkflowPublish               := Seq(
     WorkflowStep.Sbt(
