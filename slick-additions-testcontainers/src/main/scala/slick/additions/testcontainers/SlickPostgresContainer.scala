@@ -1,9 +1,6 @@
 package slick.additions.testcontainers
 
-import scala.concurrent.Future
-
 import slick.ControlsConfig
-import slick.future.Database
 import slick.jdbc.{DatabaseConfig, JdbcDatabaseConfig, JdbcProfile, PostgresProfile}
 
 import com.typesafe.config.ConfigFactory
@@ -59,26 +56,6 @@ class SlickPostgresContainer(imageName: DockerImageName = DockerImageName.parse(
         driver = "org.postgresql.Driver"
       )
       .withControls(ControlsConfig(maxConnections = maxConnections, queueSize = queueSize))
-
-  /** Opens a `Future`-based Slick Database object that can connect to the database and run Slick actions. The caller is
-    * responsible for calling `close()` on it.
-    *
-    * @param databaseName
-    *   Optionally specify a database name. Otherwise [[getDatabaseName]] will be used.
-    * @param maxConnections
-    *   The maximum number of concurrent connections (default 20)
-    * @param queueSize
-    *   The maximum number of actions waiting for a connection slot before being rejected. Defaults to 1000.
-    *
-    * @see
-    *   [[slickDatabaseConfig]]
-    */
-  def slickDatabase(
-    databaseName: String = getDatabaseName,
-    maxConnections: Int = 20,
-    queueSize: Int = 1000
-  ): Future[Database] =
-    Database.open(slickDatabaseConfig(PostgresProfile, databaseName, maxConnections, queueSize))
 
   /** Returns a Typesafe Config object that describes how to connect to the database. It can be passed to
     * `DatabaseConfig.forConfig` to get a `DatabaseConfig`.
