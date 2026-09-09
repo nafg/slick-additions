@@ -1,7 +1,6 @@
 package slick
 package additions
 
-import scala.concurrent.ExecutionContext
 import scala.language.implicitConversions
 
 import slick.additions.entity._
@@ -89,9 +88,9 @@ trait AdditionsProfile { this: JdbcProfile =>
 
       def forInsertQuery[E, C[_]](q: Query[T, E, C]) = q.map(_.mapping)
 
-      def insert(v: V)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] = insert(Ent(v): Ent)
+      def insert(v: V): DBIO[SavedEntity[K, V]] = insert(Ent(v): Ent)
 
-      def insert(e: Ent)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] = {
+      def insert(e: Ent): DBIO[SavedEntity[K, V]] = {
         // Insert it and get the new or old key
         val action = e match {
           case ke: this.KEnt =>
@@ -102,17 +101,17 @@ trait AdditionsProfile { this: JdbcProfile =>
         action.map(l => SavedEntity(l.key, e.value))
       }
 
-      def update(ke: KEnt)(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] =
+      def update(ke: KEnt): DBIO[SavedEntity[K, V]] =
         forInsertQuery(lookupQuery(ke)).update(ke.value)
           .map(_ => SavedEntity(ke.key, ke.value))
 
-      def save(e: Entity[K, V])(implicit ec: ExecutionContext): DBIO[SavedEntity[K, V]] =
+      def save(e: Entity[K, V]): DBIO[SavedEntity[K, V]] =
         e match {
           case ke: KEnt => update(ke)
           case ke: Ent  => insert(ke)
         }
 
-      def delete(ke: Lookup)(implicit ec: ExecutionContext) = lookupQuery(ke).delete
+      def delete(ke: Lookup) = lookupQuery(ke).delete
     }
 
     trait AutoName { this: Table[_] =>

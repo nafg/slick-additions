@@ -3,12 +3,13 @@ package slick.additions.codegen
 import java.nio.file.{Files, Path}
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, Future}
 import scala.meta.{Pkg, Stat, XtensionSyntax}
 
 import slick.additions.codegen.ScalaMetaDsl.*
 import slick.dbio.DBIO
-import slick.jdbc.{JdbcBackend, JdbcProfile}
+import slick.future.Database
+import slick.jdbc.{DatabaseConfig, JdbcProfile}
 
 import com.typesafe.config.Config
 import org.scalafmt.Scalafmt
@@ -70,18 +71,16 @@ trait FileCodeGenerator {
     )
       .syntax
 
-  def codeString(slickProfileClass: Class[? <: JdbcProfile])(implicit executionContext: ExecutionContext)
-    : DBIO[String] =
+  def codeString(slickProfileClass: Class[? <: JdbcProfile]): DBIO[String] =
     generationRules.objectConfigs(slickProfileClass)
       .map(codeString(_, generationRules.extraImports, slickProfileClass))
 
-  def codeString(slickProfileClassName: String)(implicit executionContext: ExecutionContext)
-    : DBIO[String] = codeString(Class.forName(slickProfileClassName).asSubclass(classOf[JdbcProfile]))
+  def codeString(slickProfileClassName: String): DBIO[String] =
+    codeString(Class.forName(slickProfileClassName).asSubclass(classOf[JdbcProfile]))
 
   def codeStringFormatted(
     slickProfileClassName: String,
     scalafmtConfig: ScalafmtConfig = ScalafmtConfig.defaultWithAlign
-  )(implicit executionContext: ExecutionContext
   ): DBIO[String] =
     codeString(Class.forName(slickProfileClassName).asSubclass(classOf[JdbcProfile]))
       .flatMap { str =>
@@ -90,11 +89,7 @@ trait FileCodeGenerator {
       }
 
   // noinspection ScalaWeakerAccess
-  def writeToFileDBIO(
-    baseDir: Path,
-    slickConfig: Config
-  )(implicit executionContext: ExecutionContext
-  ) =
+  def writeToFileDBIO(baseDir: Path, slickConfig: Config) =
     codeStringFormatted(slickConfig.getString("profile")).map { codeStr =>
       val path = filePath(baseDir)
       Files.createDirectories(path.getParent)
@@ -106,9 +101,8 @@ trait FileCodeGenerator {
     baseDir: Path,
     slickConfig: Config,
     timeout: Duration = Duration.Inf
-  )(implicit executionContext: ExecutionContext
   ): Path = {
-    val db = JdbcBackend.Database.forConfig("", slickConfig)
+    val db = Await.result(Database.open(DatabaseConfig.forConfig[JdbcProfile]("", slickConfig)), timeout)
 
     try
       Await.result(db.run(writeToFileDBIO(baseDir, slickConfig)), timeout)
