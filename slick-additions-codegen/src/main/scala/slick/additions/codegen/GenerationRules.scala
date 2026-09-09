@@ -1,6 +1,5 @@
 package slick.additions.codegen
 
-import scala.concurrent.ExecutionContext
 import scala.meta.*
 
 import slick.additions.codegen.ScalaMetaDsl.*
@@ -206,8 +205,7 @@ trait GenerationRules extends PartialFunctionUtils {
   protected def objectConfig(tableMetadata: GenerationRules.TableMetadata)
     : ObjectConfigType
 
-  def objectConfigs(slickProfileClass: Class[? <: JdbcProfile])(implicit ec: ExecutionContext)
-    : DBIO[List[ObjectConfigType]] = {
+  def objectConfigs(slickProfileClass: Class[? <: JdbcProfile]): DBIO[List[ObjectConfigType]] = {
     val slickProfileInstance = slickProfileClass.getField("MODULE$").get(null).asInstanceOf[JdbcProfile]
     for {
       tables        <- slickProfileInstance.defaultTables
