@@ -6,15 +6,15 @@ mergifyExtraConditions := Seq(
     (Attr.Author :== "nafg-scala-steward[bot]")
 )
 
-val githubUrl = url("https://github.com/nafg/slick-additions")
+val githubUrl = uri("https://github.com/nafg/slick-additions")
 
 inThisBuild(List(
   scmInfo                             :=
     Some(ScmInfo(browseUrl = githubUrl, connection = "scm:git:git@github.com/nafg/slick-additions.git")),
   homepage                            := Some(githubUrl),
-  licenses                            := List("Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0")),
+  licenses                            := List("Apache-2.0" -> uri("https://www.apache.org/licenses/LICENSE-2.0")),
   developers                          := List(
-    Developer("nafg", "Naftoli Gugenheim", "98384+nafg@users.noreply.github.com", url("https://github.com/nafg"))
+    Developer("nafg", "Naftoli Gugenheim", "98384+nafg@users.noreply.github.com", uri("https://github.com/nafg"))
   ),
   dynverGitDescribeOutput             :=
     dynverGitDescribeOutput.value.map { o =>
@@ -29,7 +29,7 @@ inThisBuild(List(
   githubWorkflowTargetTags ++= Seq("v*"),
   githubWorkflowBuild                 := Seq(
     WorkflowStep.Sbt(List("compile"), name = Some("Build project")),
-    WorkflowStep.Sbt(List("test"), name = Some("Run default tests")),
+    WorkflowStep.Sbt(List("testFull"), name = Some("Run default tests")),
     WorkflowStep.Sbt(
       commands = List(
         "slick-additions-codegen/Test/runMain slick.additions.codegen.CodeGen",

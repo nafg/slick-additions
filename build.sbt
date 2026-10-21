@@ -1,7 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
 
 
-name := "slick-additions"
+LocalRootProject / name := "slick-additions"
 
 ThisBuild / crossScalaVersions := Seq("2.12.21", "2.13.18", "3.9.0")
 ThisBuild / scalaVersion       := (ThisBuild / crossScalaVersions).value.last
