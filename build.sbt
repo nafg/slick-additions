@@ -72,7 +72,7 @@ lazy val `slick-additions-testcontainers` =
   project
     .settings(
       libraryDependencies ++= Seq(
-        "com.typesafe"        % "config"     % "1.4.9",
+        "com.typesafe"        % "config"     % "1.4.10",
         "com.typesafe.slick" %% "slick"      % slickVersion,
         "org.testcontainers"  % "postgresql" % "1.21.4"
       )
