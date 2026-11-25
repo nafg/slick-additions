@@ -34,7 +34,7 @@ lazy val `slick-additions` = (project in file("."))
     libraryDependencies ++= Seq(
       "com.typesafe.slick" %% "slick"           % slickVersion,
       "com.typesafe.slick" %% "slick-future"    % slickVersion % "test",
-      "com.lihaoyi"        %% "sourcecode"      % "0.4.5",
+      "com.lihaoyi"        %% "sourcecode"      % "0.4.6",
       "org.scalatest"      %% "scalatest"       % "3.2.20"     % "test",
       "com.h2database"      % "h2"              % "2.5.252"    % "test",
       "ch.qos.logback"      % "logback-classic" % "1.6.8"      % "test"
